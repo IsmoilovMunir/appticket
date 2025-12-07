@@ -1,0 +1,71 @@
+spring:
+  application:
+    name: ticketing-platform
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/postgres}
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:pass}
+    hikari:
+      auto-commit: false
+  jpa:
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        format_sql: true
+    open-in-view: false
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+  mail:
+    host: smtp.timeweb.ru
+    port: 465
+    username: info@surnekevents.ru
+    password: zy287rt3f7
+    protocol: smtp
+    properties:
+      mail.smtp.auth: true
+      mail.smtp.ssl.enable: true
+      mail.smtp.ssl.trust: smtp.timeweb.ru
+  jackson:
+    default-property-inclusion: non_null
+  web:
+    resources:
+      add-mappings: false
+  flyway:
+    enabled: false
+
+server:
+  port: ${SERVER_PORT:8080}
+
+logging:
+  level:
+    org.springframework.security: INFO
+    com.surnekev.ticketing: DEBUG
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+
+security:
+  jwt:
+    issuer: ticketing-platform
+    access-token-ttl-seconds: ${JWT_TTL_SECONDS:1800}  # 30 минут вместо 1 часа
+    secret: ${JWT_SECRET:DeaukxWN9xJ5qe5AtwBOBDXgdJ13qEBPgf408F6EFjrXs2H/Bc9LkeAKCA+SjFBL}
+
+admin:
+  default-password: ${ADMIN_DEFAULT_PASSWORD:}  # Обязательно задать через переменную окружения!
+
+telegram:
+  bot-token: ${TELEGRAM_BOT_TOKEN:8051860169:AAFmiZ8Y_jdIDG9RPOAszllj6wI_tNNzhtc}
+  manager-chat-id: ${TELEGRAM_CHAT_ID:836633923}
+
+seatmap:
+  hold-ttl-seconds: 1800
+
+mail:
+  from: ${MAIL_FROM:info@surnekevents.ru}

@@ -1,0 +1,273 @@
+:root {
+  --seat-available: #1f9d6c;
+  --seat-held: #ffb703;
+  --seat-sold: #a4161a;
+  --seat-blocked: #6c757d;
+}
+
+body {
+  font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  background: #f8fbff;
+  color: #1d1f23;
+}
+
+.seat-dot {
+  cursor: pointer;
+  transition: transform 0.15s ease, filter 0.15s ease;
+}
+
+.seat-dot.sold,
+.seat-dot.blocked {
+  cursor: not-allowed;
+}
+
+.seat-dot.selected {
+  filter: drop-shadow(0 0 8px rgba(13, 110, 253, 0.45));
+}
+
+.modal-backdrop-custom {
+  position: fixed;
+  inset: 0;
+  background: #fff;
+  display: flex;
+  align-items: stretch;
+  justify-content: center;
+  z-index: 100;
+  padding: 0;
+}
+
+.modal-panel {
+  width: min(1400px, 100%);
+  height: 100vh;
+  max-height: none;
+  background: #fff;
+  border-radius: 0;
+  box-shadow: none;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  padding: clamp(16px, 2vw, 32px);
+}
+
+.price-filter .btn {
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.hall-map-container {
+  position: relative;
+}
+
+.hall-map-toolbar {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  z-index: 2;
+}
+
+.hall-map-viewport {
+  overflow: auto;
+  height: calc(100vh - 100px);
+  background: #fff;
+  border-radius: 16px;
+  display: flex;
+  justify-content: center;
+  position: relative;
+}
+
+.hall-img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+  margin-top: -40%;
+}
+
+.zoom-btn {
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  background: rgba(255, 255, 255, 0.9);
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  font-size: 1.1rem;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.zoom-btn.reset {
+  width: auto;
+  padding: 0 10px;
+  font-size: 0.85rem;
+}
+
+.zoom-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.zoom-value {
+  min-width: 48px;
+  text-align: center;
+  font-weight: 600;
+}
+
+.hall-map {
+  width: 2200px;
+  height: 3569px;
+  display: block;
+  transform-origin: center top;
+}
+
+@media (max-width: 768px) {
+  .hall-map {
+    width: 200px;
+    height: 1300px;
+  }
+}
+
+.hall-map svg {
+  width: max-content;
+  height: 25%;
+  display: block;
+}
+
+.hall-map [data-seat-id] {
+  cursor: pointer;
+  transition: filter 0.2s ease, opacity 0.2s ease, stroke 0.2s ease;
+  stroke-width: 0;
+}
+
+.hall-map [data-seat-id].seat-available {
+  fill: var(--seat-available);
+}
+
+.hall-map [data-seat-id].seat-held {
+  fill: var(--seat-held);
+}
+
+.hall-map [data-seat-id].seat-sold {
+  fill: var(--seat-sold);
+  cursor: not-allowed;
+}
+
+.hall-map [data-seat-id].seat-blocked {
+  fill: var(--seat-blocked);
+  cursor: not-allowed;
+}
+
+.hall-map [data-seat-id].seat-selected {
+  stroke: #0d6efd;
+  stroke-width: 4;
+  filter: drop-shadow(0 0 8px rgba(13, 110, 253, 0.45));
+}
+
+.hall-map [data-seat-id].seat-filtered {
+  opacity: 0.15;
+  pointer-events: none;
+}
+
+.hall-map [data-seat-id].seat-sold.seat-selected,
+.hall-map [data-seat-id].seat-blocked.seat-selected {
+  stroke: none;
+  filter: none;
+}
+
+.legend-dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  display: inline-block;
+  margin-right: 6px;
+}
+
+.seat-map-layout {
+  height: calc(100vh - 160px);
+  min-height: 480px;
+}
+
+.seat-map-layout .seat-map-column,
+.seat-map-layout .cart-column {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.seat-map-column .seat-map {
+  min-height: 0;
+}
+
+.seat-map-layout .cart-panel {
+  min-height: 0;
+}
+
+.contact-form-block input {
+  font-size: 0.9rem;
+}
+
+.selected-seats-container {
+  border-top: 1px solid rgba(0, 0, 0, 0.05);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+  padding: 0.5rem 0;
+}
+
+.selected-seats-container {
+  min-height: 0;
+  overflow: hidden;
+}
+
+.selected-seats-scroll {
+  max-height: 200px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-right: 4px;
+}
+
+.selected-seats-scroll::-webkit-scrollbar {
+  width: 6px;
+}
+
+.selected-seats-scroll::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 3px;
+}
+
+.selected-seats-scroll::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 3px;
+}
+
+.selected-seats-scroll::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
+
+.sticky-checkout {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: #f8f9fa;
+  border-radius: 12px;
+  padding: 12px;
+}
+
+@media (max-width: 991px) {
+  .modal-panel {
+    height: 100vh;
+    width: 100%;
+  }
+
+  .seat-map-layout {
+    height: auto;
+  }
+
+  .hall-map-viewport {
+    height: 60vh;
+  }
+}
+
