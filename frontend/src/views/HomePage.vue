@@ -116,7 +116,7 @@ const infoCards = [
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, rgba(13, 110, 253, 0.1), rgba(111, 66, 193, 0.1));
+  background: linear-gradient(135deg, rgba(24, 114, 63, 0.1), rgba(111, 66, 193, 0.1));
   border-radius: 20px;
 }
 </style>

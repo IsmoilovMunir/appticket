@@ -33,26 +33,32 @@ public class RateLimitFilter extends OncePerRequestFilter {
         
         // Применяем rate limiting только к эндпоинту логина
         if ("/api/auth/login".equals(request.getRequestURI()) && "POST".equals(request.getMethod())) {
-            String clientIp = getClientIp(request);
-            String key = RATE_LIMIT_PREFIX + clientIp;
-            
-            ValueOperations<String, String> ops = redisTemplate.opsForValue();
-            String attemptsStr = ops.get(key);
-            int attempts = attemptsStr != null ? Integer.parseInt(attemptsStr) : 0;
-            
-            if (attempts >= MAX_ATTEMPTS) {
-                log.warn("Rate limit exceeded for IP: {}", clientIp);
-                response.setStatus(HttpStatus.TOO_MANY_REQUESTS.value());
-                response.setContentType("application/json");
-                response.getWriter().write("{\"error\":\"Too many login attempts. Please try again later.\"}");
-                return;
-            }
-            
-            // Увеличиваем счетчик попыток
-            if (attempts == 0) {
-                ops.set(key, "1", BLOCK_DURATION_MINUTES, TimeUnit.MINUTES);
-            } else {
-                ops.increment(key);
+            try {
+                String clientIp = getClientIp(request);
+                String key = RATE_LIMIT_PREFIX + clientIp;
+                
+                ValueOperations<String, String> ops = redisTemplate.opsForValue();
+                String attemptsStr = ops.get(key);
+                int attempts = attemptsStr != null ? Integer.parseInt(attemptsStr) : 0;
+                
+                if (attempts >= MAX_ATTEMPTS) {
+                    log.warn("Rate limit exceeded for IP: {}", clientIp);
+                    response.setStatus(HttpStatus.TOO_MANY_REQUESTS.value());
+                    response.setContentType("application/json");
+                    response.getWriter().write("{\"error\":\"Too many login attempts. Please try again later.\"}");
+                    return;
+                }
+                
+                // Увеличиваем счетчик попыток
+                if (attempts == 0) {
+                    ops.set(key, "1", BLOCK_DURATION_MINUTES, TimeUnit.MINUTES);
+                } else {
+                    ops.increment(key);
+                }
+            } catch (Exception e) {
+                // Если Redis недоступен, логируем предупреждение и пропускаем запрос
+                // Это позволяет приложению работать даже без Redis (graceful degradation)
+                log.warn("Redis unavailable for rate limiting: {}. Allowing request to proceed.", e.getMessage());
             }
         }
         

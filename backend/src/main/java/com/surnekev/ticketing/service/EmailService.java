@@ -122,6 +122,75 @@ public class EmailService {
                 .append(System.lineSeparator());
     }
 
+    public void sendRefundNotification(Reservation reservation, List<Ticket> refundedTickets, String reason) {
+        String buyerEmail = reservation.getBuyerEmail();
+        if (!StringUtils.hasText(buyerEmail)) {
+            log.debug("Reservation {} does not have email, skipping refund notification", reservation.getId());
+            return;
+        }
+        if (!isConfigured()) {
+            log.debug("Mail sender host is not configured, skipping email delivery");
+            return;
+        }
+        try {
+            MimeMessage mimeMessage = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, false, StandardCharsets.UTF_8.name());
+            String from = StringUtils.hasText(fromAddress) ? fromAddress : "no-reply@surnekevents.ru";
+            helper.setFrom(Objects.requireNonNull(from));
+            helper.setTo(Objects.requireNonNull(buyerEmail));
+            String subjectTitle = safe(reservation.getConcert().getTitle());
+            String subject = "Возврат билетов на " + subjectTitle;
+            helper.setSubject(Objects.requireNonNull(subject));
+            helper.setText(buildRefundBody(reservation, refundedTickets, reason), false);
+
+            mailSender.send(mimeMessage);
+            log.info("Refund notification sent to {} for reservation {}", buyerEmail, reservation.getId());
+        } catch (Exception ex) {
+            log.error("Failed to send refund notification for reservation {}", reservation.getId(), ex);
+        }
+    }
+
+    private String buildRefundBody(Reservation reservation, List<Ticket> refundedTickets, String reason) {
+        String concertTitle = safe(reservation.getConcert().getTitle());
+        String dateTime = reservation.getConcert().getConcertDate() != null
+                ? DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm")
+                .withZone(ZoneId.systemDefault())
+                .format(reservation.getConcert().getConcertDate())
+                : "Уточняется";
+        StringBuilder seats = new StringBuilder();
+        if (refundedTickets != null && !refundedTickets.isEmpty()) {
+            refundedTickets.forEach(ticket -> appendSeatLine(seats, ticket.getSeat()));
+        }
+
+        String reasonText = StringUtils.hasText(reason) ? reason : "Возврат по запросу";
+
+        return """
+                Здравствуйте, %s!
+
+                Уведомляем вас о возврате ваших билетов на концерт "%s".
+                Дата и время концерта: %s
+                Место проведения: %s
+
+                Возвращенные билеты:
+                %s
+
+                Причина возврата: %s
+
+                Средства будут возвращены в соответствии с политикой возврата.
+
+                Если у вас возникли вопросы, пожалуйста, свяжитесь с нами.
+
+                С уважением,
+                команда Surnek Events
+                """.formatted(
+                safe(reservation.getBuyerName()),
+                concertTitle,
+                dateTime,
+                safe(reservation.getConcert().getVenue()),
+                seats.toString().isBlank() ? "—" + System.lineSeparator() : seats,
+                reasonText);
+    }
+
     private String safe(String value) {
         return value == null ? "—" : value;
     }

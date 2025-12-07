@@ -7,7 +7,7 @@
       :class="['seat-dot', statusClass, { selected }]"
       :data-seat-id="seat.id"
       :fill="fillColor"
-      :stroke="selected ? '#0d6efd' : 'transparent'"
+      :stroke="selected ? '#18723F' : 'transparent'"
       :stroke-width="selected ? 4 : 0"
     />
     <text

@@ -2,9 +2,12 @@ spring:
   application:
     name: ticketing-platform
   datasource:
-    url: ${DB_URL:jdbc:postgresql://localhost:5432/postgres}
-    username: ${DB_USERNAME:postgres}
-    password: ${DB_PASSWORD:pass}
+    # URL подключения к базе данных
+    # Для Docker: jdbc:postgresql://postgres:5432/tickets (postgres - имя сервиса в docker-compose)
+    # Для локального запуска: jdbc:postgresql://localhost:15432/tickets (15432 - внешний порт)
+    url: ${DB_URL:jdbc:postgresql://localhost:15432/tickets}
+    username: ${DB_USERNAME:ticket}
+    password: ${DB_PASSWORD:ticket}
     hikari:
       auto-commit: false
   jpa:
@@ -54,15 +57,15 @@ management:
 security:
   jwt:
     issuer: ticketing-platform
-    access-token-ttl-seconds: ${JWT_TTL_SECONDS:1800}  # 30 минут вместо 1 часа
+    access-token-ttl-seconds: ${JWT_TTL_SECONDS:1800}
     secret: ${JWT_SECRET:DeaukxWN9xJ5qe5AtwBOBDXgdJ13qEBPgf408F6EFjrXs2H/Bc9LkeAKCA+SjFBL}
 
 admin:
-  default-password: ${ADMIN_DEFAULT_PASSWORD:}  # Обязательно задать через переменную окружения!
+  default-password: ${ADMIN_DEFAULT_PASSWORD:12345}
 
 telegram:
-  bot-token: ${TELEGRAM_BOT_TOKEN:8051860169:AAFmiZ8Y_jdIDG9RPOAszllj6wI_tNNzhtc}
-  manager-chat-id: ${TELEGRAM_CHAT_ID:836633923}
+  bot-token: ${TELEGRAM_BOT_TOKEN:7805509546:AAEYNWvv9Bt90qyTM51ZTg0I6X0tIw0wP1o}
+  manager-chat-id: ${TELEGRAM_CHAT_ID:8530131432}
 
 seatmap:
   hold-ttl-seconds: 1800

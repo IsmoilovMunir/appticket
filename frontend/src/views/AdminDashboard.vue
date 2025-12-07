@@ -385,7 +385,7 @@
                         </tr>
                       </thead>
                       <tbody>
-                          <tr v-for="assignment in seatTables.slice(0, 10)" :key="assignment.tableNumber">
+                          <tr v-for="assignment in seatTables" :key="assignment.tableNumber">
                           <td>
                               <div class="fw-semibold small">Стол {{ assignment.tableNumber }}</div>
                             <div class="text-body-secondary small">База: {{ formatRub(assignment.basePriceCents) }}</div>
@@ -410,7 +410,7 @@
                         </tbody>
                       </table>
                     </div>
-                    <p class="text-body-secondary small">Показано 10 из {{ seatTables.length }} столов</p>
+                    <p class="text-body-secondary small">Всего столов: {{ seatTables.length }}</p>
                   </div>
                 </div>
 
@@ -1344,7 +1344,7 @@ watch(isAuthenticated, (val) => {
 }
 
 .dashboard-card.active {
-  border-color: #0d6efd !important;
+  border-color: #18723F !important;
   background: #f8f9fa;
 }
 

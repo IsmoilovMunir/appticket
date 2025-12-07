@@ -12,20 +12,7 @@
       </div>
       <div class="row g-4 flex-grow-1 seat-map-layout">
         <div class="col-lg-8 seat-map-column">
-          <!-- Кнопка "Купить X билет" над схемой для мобильных -->
-          <div class="d-lg-none mb-3 buy-button-above-map">
-            <button
-              class="btn btn-primary w-100 btn-lg"
-              :disabled="selectedSeats.length === 0"
-              @click="showCheckoutPanel = true"
-            >
-              <span v-if="selectedSeats.length > 0">
-                Купить {{ getTicketText(selectedSeats.length) }}
-              </span>
-              <span v-else>Выберите места</span>
-            </button>
-          </div>
-          <div class="price-filter btn-group mb-3 flex-wrap flex-shrink-0">
+          <div class="price-filter btn-group mb-3 flex-nowrap flex-shrink-0">
             <button
               v-for="option in priceOptions"
               :key="option.label"
@@ -37,8 +24,21 @@
               {{ option.label }}
             </button>
           </div>
-          <div class="seat-map border rounded-4 p-3 bg-body flex-grow-1 d-flex flex-column">
+          <div class="seat-map border rounded-4 p-3 bg-body flex-grow-1 d-flex flex-column position-relative">
             <HallMap class="flex-grow-1" />
+            <!-- Кнопка "Купить X билет" внизу карты для мобильных -->
+            <div class="d-lg-none buy-button-toolbar">
+              <button
+                class="buy-btn-toolbar"
+                :disabled="selectedSeats.length === 0"
+                @click="showCheckoutPanel = true"
+              >
+                <span v-if="selectedSeats.length > 0">
+                  Купить {{ getTicketText(selectedSeats.length) }}
+                </span>
+                <span v-else>Выберите места</span>
+              </button>
+            </div>
           </div>
           <LegendPanel class="mt-3 flex-shrink-0" />
         </div>
@@ -256,12 +256,38 @@ const reservationStore = useReservationStore();
 const consentToProcessing = ref(false);
 const showCheckoutPanel = ref(false);
 
-const priceOptions = [
-  { label: 'Все категории', value: null },
-  { label: '10 000 ₽', value: 1_000_000 },
-  { label: '7 000 ₽', value: 700_000 },
-  { label: '5 000 ₽', value: 500_000 }
-];
+// Функция форматирования цены
+const formatPrice = (cents: number) =>
+  new Intl.NumberFormat('ru-RU', {
+    style: 'currency',
+    currency: 'RUB'
+  }).format(cents / 100);
+
+// Динамически формируем опции фильтров по ценам из загруженных мест
+const priceOptions = computed(() => {
+  const options: Array<{ label: string; value: number | null }> = [
+    { label: 'Все категории', value: null }
+  ];
+  
+  // Извлекаем уникальные цены из мест
+  const uniquePrices = new Set<number>();
+  seatStore.seats.forEach((seat) => {
+    if (seat.priceCents) {
+      uniquePrices.add(seat.priceCents);
+    }
+  });
+  
+  // Сортируем цены по убыванию и создаем опции
+  const sortedPrices = Array.from(uniquePrices).sort((a, b) => b - a);
+  sortedPrices.forEach((priceCents) => {
+    options.push({
+      label: formatPrice(priceCents),
+      value: priceCents
+    });
+  });
+  
+  return options;
+});
 
 const selectedSeats = computed(() => seatStore.selectedSeats);
 const selected = computed(() => seatStore.selected);
@@ -320,12 +346,6 @@ const submitReservation = async () => {
 };
 
 const close = () => emit('close');
-
-const formatPrice = (cents: number) =>
-  new Intl.NumberFormat('ru-RU', {
-    style: 'currency',
-    currency: 'RUB'
-  }).format(cents / 100);
 
 const getTicketText = (count: number): string => {
   const lastDigit = count % 10;

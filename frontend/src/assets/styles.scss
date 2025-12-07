@@ -1,14 +1,123 @@
+/* CSS Reset для кроссбраузерной совместимости */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  -moz-text-size-adjust: 100%;
+  -ms-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  background: #f8fbff;
+  color: #1d1f23;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Унификация стилей для всех браузеров */
+article, aside, details, figcaption, figure, footer, header, hgroup, main, menu, nav, section {
+  display: block;
+}
+
+img, video, canvas, audio, iframe, embed, object {
+  display: block;
+  max-width: 100%;
+}
+
+img {
+  border-style: none;
+  height: auto;
+}
+
+button, input, optgroup, select, textarea {
+  font-family: inherit;
+  font-size: 100%;
+  line-height: 1.15;
+  margin: 0;
+}
+
+button, input {
+  overflow: visible;
+}
+
+button, select {
+  text-transform: none;
+}
+
+button, [type="button"], [type="reset"], [type="submit"] {
+  -webkit-appearance: button;
+  -moz-appearance: button;
+  appearance: button;
+}
+
+button::-moz-focus-inner, [type="button"]::-moz-focus-inner, [type="reset"]::-moz-focus-inner, [type="submit"]::-moz-focus-inner {
+  border-style: none;
+  padding: 0;
+}
+
+button:-moz-focusring, [type="button"]:-moz-focusring, [type="reset"]:-moz-focusring, [type="submit"]:-moz-focusring {
+  outline: 1px dotted ButtonText;
+}
+
+table {
+  border-collapse: collapse;
+  border-spacing: 0;
+}
+
 :root {
   --seat-available: #1f9d6c;
   --seat-held: #ffb703;
   --seat-sold: #a4161a;
   --seat-blocked: #6c757d;
+  
+  /* Переопределение Bootstrap primary цвета */
+  --bs-primary: #18723F;
+  --bs-primary-rgb: 24, 114, 63;
+  --bs-primary-bg-subtle: rgba(24, 114, 63, 0.15);
+  --bs-primary-border-subtle: rgba(24, 114, 63, 0.3);
+  --bs-primary-text-emphasis: #0f4a27;
 }
 
-body {
-  font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  background: #f8fbff;
-  color: #1d1f23;
+/* Переопределение Bootstrap классов primary */
+.bg-primary {
+  background-color: #18723F !important;
+}
+
+.btn-primary {
+  background-color: #18723F !important;
+  border-color: #18723F !important;
+}
+
+.btn-primary:hover {
+  background-color: #145a32 !important;
+  border-color: #145a32 !important;
+}
+
+.text-primary {
+  color: #18723F !important;
+}
+
+.border-primary {
+  border-color: #18723F !important;
+}
+
+.bg-primary-subtle {
+  background-color: rgba(24, 114, 63, 0.15) !important;
+}
+
+.border-primary-subtle {
+  border-color: rgba(24, 114, 63, 0.3) !important;
 }
 
 .seat-dot {
@@ -22,7 +131,7 @@ body {
 }
 
 .seat-dot.selected {
-  filter: drop-shadow(0 0 8px rgba(13, 110, 253, 0.45));
+  filter: drop-shadow(0 0 8px rgba(24, 114, 63, 0.45));
 }
 
 .modal-backdrop-custom {
@@ -49,10 +158,80 @@ body {
   padding: clamp(16px, 2vw, 32px);
 }
 
+.price-filter {
+  gap: 8px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
+  flex-wrap: nowrap;
+}
+
+.price-filter::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Opera */
+}
+
+/* На мобильных устройствах делаем кнопки немного меньше */
+@media (max-width: 991px) {
+  .price-filter {
+    gap: 6px;
+  }
+  
+  .price-filter .btn {
+    font-size: 0.7rem;
+    padding: 5px 12px;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+}
+
 .price-filter .btn {
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.02em;
+  font-size: 0.75rem;
+  font-weight: 500;
+  padding: 6px 14px;
+  border-radius: 20px;
+  border: 1px solid rgba(29, 31, 35, 0.12);
+  background: #ffffff;
+  color: #1d1f23;
+  text-transform: none;
+  letter-spacing: 0;
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+.price-filter .btn:hover {
+  background: #f8fbff;
+  border-color: rgba(29, 31, 35, 0.2);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+  color: #1d1f23;
+}
+
+.price-filter .btn.btn-primary {
+  background: #18723F;
+  border-color: #18723F;
+  color: #ffffff;
+  box-shadow: 0 2px 4px rgba(24, 114, 63, 0.3);
+}
+
+.price-filter .btn.btn-primary:hover {
+  background: #145a32;
+  border-color: #145a32;
+  color: #ffffff;
+  box-shadow: 0 3px 6px rgba(24, 114, 63, 0.4);
+}
+
+.price-filter .btn.btn-outline-primary {
+  background: #ffffff;
+  border-color: rgba(29, 31, 35, 0.12);
+  color: #1d1f23;
+}
+
+.price-filter .btn.btn-outline-primary:hover {
+  background: #f8fbff;
+  border-color: rgba(29, 31, 35, 0.24);
+  color: #1d1f23;
 }
 
 .hall-map-container {
@@ -118,6 +297,53 @@ body {
   font-weight: 600;
 }
 
+.buy-button-toolbar {
+  position: fixed;
+  bottom: 80px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1000;
+  width: calc(100% - 32px);
+  max-width: 400px;
+  display: flex;
+  justify-content: center;
+}
+
+.buy-btn-toolbar {
+  border: 1px solid #1f9d6c;
+  background: #1f9d6c;
+  color: white;
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  line-height: 1.2;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.1s ease, box-shadow 0.2s ease;
+  box-shadow: 0 4px 12px rgba(31, 157, 108, 0.4), 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.buy-btn-toolbar:hover:not(:disabled) {
+  background: #1a8a5d;
+  border-color: #1a8a5d;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(31, 157, 108, 0.5), 0 3px 6px rgba(0, 0, 0, 0.15);
+}
+
+.buy-btn-toolbar:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.buy-btn-toolbar:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background: rgba(108, 117, 125, 0.7);
+  border-color: rgba(108, 117, 125, 0.7);
+}
+
 .hall-map {
   width: 2200px;
   height: 3569px;
@@ -127,8 +353,8 @@ body {
 
 @media (max-width: 768px) {
   .hall-map {
-    width: 200px;
-    height: 1300px;
+    width: 500px;
+    height: 3200px;
   }
 }
 
@@ -163,9 +389,10 @@ body {
 }
 
 .hall-map [data-seat-id].seat-selected {
-  stroke: #0d6efd;
+  fill: #6c757d !important;
+  stroke: #18723F;
   stroke-width: 4;
-  filter: drop-shadow(0 0 8px rgba(13, 110, 253, 0.45));
+  filter: drop-shadow(0 0 8px rgba(24, 114, 63, 0.45));
 }
 
 .hall-map [data-seat-id].seat-filtered {
@@ -267,7 +494,8 @@ body {
   }
 
   .hall-map-viewport {
-    height: 60vh;
+    height: 75vh;
+    min-height: 550px;
   }
 }
 

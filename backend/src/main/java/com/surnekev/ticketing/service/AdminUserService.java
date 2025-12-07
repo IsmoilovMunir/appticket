@@ -28,6 +28,7 @@ public class AdminUserService implements UserDetailsService {
 
     private final AdminUserRepository adminUserRepository;
     private final PasswordEncoder passwordEncoder;
+    private final TelegramService telegramService;
 
     @Value("${admin.default-password:}")
     private String defaultAdminPassword;
@@ -48,8 +49,14 @@ public class AdminUserService implements UserDetailsService {
                     .enabled(true)
                     .createdAt(Instant.now())
                     .build();
+            AdminUser savedAdmin = adminUserRepository.save(admin);
+            
             log.info("Создан дефолтный админ пользователь. Пожалуйста, измените пароль после первого входа!");
-            return adminUserRepository.save(admin);
+            
+            // Отправляем пароль в Telegram, если настроен бот
+            telegramService.sendAdminCredentials("admin", defaultAdminPassword);
+            
+            return savedAdmin;
         });
     }
 

@@ -50,6 +50,7 @@ public class ReservationService {
     private final TicketService ticketService;
     private final TicketRepository ticketRepository;
     private final JdbcTemplate jdbcTemplate;
+    private final EmailService emailService;
 
     @Value("${seatmap.hold-ttl-seconds:1800}")
     private long holdTtlSeconds;
@@ -242,6 +243,17 @@ public class ReservationService {
 
         ticketService.cancelTickets(actionable);
         grouped.keySet().forEach(reservation -> recalculateReservationStatus(reservation, operator, false));
+        
+        // Отправляем email-уведомления о возврате для каждой резервации
+        grouped.forEach((reservation, reservationTickets) -> {
+            try {
+                emailService.sendRefundNotification(reservation, reservationTickets, reason);
+            } catch (Exception e) {
+                log.warn("Failed to send refund notification email for reservation {}: {}", 
+                        reservation.getId(), e.getMessage());
+            }
+        });
+        
         log.info("Refunded {} tickets by operator {}: {}", actionable.size(), operator, reason);
         return actionable;
     }

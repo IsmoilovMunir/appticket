@@ -220,6 +220,46 @@ public class TelegramService {
         }
     }
 
+    public void sendAdminCredentials(String username, String password) {
+        if (!isConfigured()) {
+            log.warn("Telegram bot not configured, cannot send admin credentials");
+            return;
+        }
+
+        String message = String.format("""
+                🔑 <b>Создан администратор системы</b>
+                
+                Имя пользователя: <code>%s</code>
+                Пароль: <code>%s</code>
+                
+                ⚠️ <b>ВАЖНО:</b> Обязательно измените пароль после первого входа!
+                """, username, password);
+
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("chat_id", managerChatId);
+        payload.put("text", message);
+        payload.put("parse_mode", "HTML");
+
+        try {
+            persistLog(TelegramLog.Direction.OUTBOUND, Map.of(
+                    "method", "sendMessage",
+                    "type", "admin_credentials",
+                    "username", username
+            ));
+            ResponseEntity<TelegramMessageResponse> response = restTemplate.postForEntity(
+                    apiUrl("sendMessage"), payload, TelegramMessageResponse.class);
+            persistLog(TelegramLog.Direction.INBOUND, response.getBody());
+            if (response.getBody() == null || !response.getBody().isOk()) {
+                log.warn("Failed to send admin credentials to Telegram: {}", response);
+            } else {
+                log.info("Admin credentials sent to Telegram successfully");
+            }
+        } catch (Exception ex) {
+            log.error("Failed to send admin credentials to Telegram", ex);
+            // Не бросаем исключение, чтобы не блокировать создание админа
+        }
+    }
+
     private boolean isConfigured() {
         return StringUtils.hasText(botToken) && StringUtils.hasText(managerChatId);
     }

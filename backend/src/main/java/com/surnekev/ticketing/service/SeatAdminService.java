@@ -11,6 +11,10 @@ import com.surnekev.ticketing.dto.SeatTableAssignmentDto;
 import com.surnekev.ticketing.repository.ConcertRepository;
 import com.surnekev.ticketing.repository.SeatCategoryRepository;
 import com.surnekev.ticketing.repository.SeatRepository;
+import jakarta.persistence.CacheRetrieveMode;
+import jakarta.persistence.CacheStoreMode;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.TypedQuery;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -28,6 +32,7 @@ public class SeatAdminService {
     private final SeatCategoryRepository seatCategoryRepository;
     private final SeatRepository seatRepository;
     private final ConcertRepository concertRepository;
+    private final EntityManager entityManager;
 
     @Transactional(readOnly = true)
     public List<SeatCategoryDto> listCategories() {
@@ -49,7 +54,15 @@ public class SeatAdminService {
         if (request.colorHex() != null) {
             category.setColorHex(request.colorHex().toUpperCase());
         }
-        return toDto(seatCategoryRepository.save(category));
+        seatCategoryRepository.save(category);
+        // Принудительно сохраняем изменения в БД
+        seatCategoryRepository.flush();
+        // Очищаем кэш EntityManager для этой сущности, чтобы гарантировать свежие данные при следующем запросе
+        entityManager.detach(category);
+        // Перезагружаем категорию из БД, чтобы получить актуальные данные
+        SeatCategory updatedCategory = seatCategoryRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Seat category not found after update"));
+        return toDto(updatedCategory);
     }
 
     @Transactional(readOnly = true)
@@ -103,7 +116,16 @@ public class SeatAdminService {
     }
 
     private SeatTableAssignmentDto buildAssignment(int tableNumber, List<Seat> seats) {
-        SeatCategory category = seats.getFirst().getCategory();
+        SeatCategory categoryFromSeat = seats.getFirst().getCategory();
+        // Всегда перезагружаем категорию из БД через JPQL запрос, чтобы гарантировать актуальные данные
+        // Это критично для получения обновленной цены после изменения категории
+        // Используем подсказки для обхода кэша Hibernate
+        TypedQuery<SeatCategory> query = entityManager.createQuery(
+                "SELECT c FROM SeatCategory c WHERE c.id = :id", SeatCategory.class);
+        query.setParameter("id", categoryFromSeat.getId());
+        query.setHint("jakarta.persistence.cache.retrieveMode", CacheRetrieveMode.BYPASS);
+        query.setHint("jakarta.persistence.cache.storeMode", CacheStoreMode.BYPASS);
+        SeatCategory category = query.getSingleResult();
         boolean hasOverrides = seats.stream().anyMatch(seat -> seat.getPriceOverrideCents() != null);
         Integer overrideValue = null;
         if (hasOverrides) {

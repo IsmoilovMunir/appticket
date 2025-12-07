@@ -238,6 +238,11 @@ const resolveSeatElement = (seatId: number, tableNumber: number, chairNumber: nu
 };
 
 const applySeatColor = (node: SVGElement, seat: Seat) => {
+  // Если место выбрано, делаем его серым
+  if (seatStore.selected.has(seat.id)) {
+    node.style.fill = '#6c757d';
+    return;
+  }
   if (seat.status === 'AVAILABLE') {
     const color = resolveCategoryColor(seat.priceCents, seat.categoryColorHex);
     node.style.fill = color;
@@ -318,11 +323,13 @@ const handleSeatClick = (event: Event) => {
   const seat = findSeatByMeta(meta);
   if (!seat) {
     if (meta.tableNumber) {
-      bumpZoom();
+      // Увеличиваем зум на 20% при клике на стол
+      setZoom(zoom.value * 1.2);
       scrollIntoView(tableElementsByNumber.value.get(meta.tableNumber) ?? target ?? null);
     }
     return;
   }
+  // При клике на место (стул) только выбираем, без зума
   scrollIntoView(resolveSeatElement(seat.id, seat.tableNumber, seat.chairNumber));
   seatStore.toggleSeat(seat.id);
 };

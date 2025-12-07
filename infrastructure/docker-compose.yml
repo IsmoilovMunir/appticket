@@ -3,15 +3,51 @@ version: "3.9"
 services:
   postgres:
     image: postgres:16
+    container_name: surnekevents-postgres
     environment:
+      # Основные настройки базы данных
       POSTGRES_DB: ${POSTGRES_DB:-tickets}
       POSTGRES_USER: ${DB_USERNAME:-ticket}
       POSTGRES_PASSWORD: ${DB_PASSWORD:-ticket}
+      # Настройки для надежности
+      POSTGRES_INITDB_ARGS: "-E UTF8"
+      PGDATA: /var/lib/postgresql/data/pgdata
     volumes:
       - postgres-data:/var/lib/postgresql/data
+    command: >
+      postgres
+      -c shared_buffers=256MB
+      -c effective_cache_size=1GB
+      -c maintenance_work_mem=64MB
+      -c checkpoint_completion_target=0.9
+      -c wal_buffers=16MB
+      -c default_statistics_target=100
+      -c random_page_cost=1.1
+      -c effective_io_concurrency=200
+      -c work_mem=4MB
+      -c min_wal_size=1GB
+      -c max_wal_size=4GB
+      -c max_connections=200
+      -c log_timezone=Europe/Moscow
+      -c timezone=Europe/Moscow
+      -c logging_collector=on
+      -c log_directory=log
+      -c log_filename=postgresql-%Y-%m-%d_%H%M%S.log
+      -c log_rotation_age=1d
+      -c log_rotation_size=100MB
+      -c log_min_duration_statement=1000
+      -c password_encryption=scram-sha-256
     ports:
-      - "15432:5432"
+      - "${POSTGRES_PORT:-15432}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-ticket} -d ${POSTGRES_DB:-tickets}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
     restart: unless-stopped
+    networks:
+      - default
 
   redis:
     image: redis:7
@@ -25,7 +61,7 @@ services:
       context: ..
       dockerfile: infrastructure/backend.Dockerfile
     environment:
-      DB_URL: ${DB_URL:-jdbc:postgresql://postgres:5432/tickets}
+      DB_URL: ${DB_URL:-jdbc:postgresql://postgres:5432/${POSTGRES_DB:-tickets}}
       DB_USERNAME: ${DB_USERNAME:-ticket}
       DB_PASSWORD: ${DB_PASSWORD:-ticket}
       REDIS_HOST: ${REDIS_HOST:-redis}
@@ -33,15 +69,17 @@ services:
       REDIS_PASSWORD: ${REDIS_PASSWORD:-}
       JWT_SECRET: ${JWT_SECRET:-changemechangemechangemechangeme}
       JWT_TTL_SECONDS: ${JWT_TTL_SECONDS:-1800}
-      ADMIN_DEFAULT_PASSWORD: ${ADMIN_DEFAULT_PASSWORD:-}
+      ADMIN_DEFAULT_PASSWORD: ${ADMIN_DEFAULT_PASSWORD:-12345}
       TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
       TELEGRAM_CHAT_ID: ${TELEGRAM_CHAT_ID:-}
       MAIL_FROM: ${MAIL_FROM:-info@surnekevents.ru}
     depends_on:
-      - postgres
-      - redis
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
     ports:
-      - "8080:8080"
+      - "${SERVER_PORT:-8080}:8080"
     restart: unless-stopped
 
   frontend:

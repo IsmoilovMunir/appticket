@@ -40,9 +40,14 @@ public class AuthController {
                     new UsernamePasswordAuthenticationToken(request.username(), request.password()));
 
             // Успешный логин - сбрасываем счетчик попыток
-            String clientIp = getClientIp(httpRequest);
-            String key = "rate_limit:login:" + clientIp;
-            redisTemplate.delete(key);
+            try {
+                String clientIp = getClientIp(httpRequest);
+                String key = "rate_limit:login:" + clientIp;
+                redisTemplate.delete(key);
+            } catch (Exception e) {
+                // Если Redis недоступен, логируем предупреждение и продолжаем работу
+                log.warn("Redis unavailable for clearing rate limit: {}", e.getMessage());
+            }
 
             Map<String, Object> claims = new HashMap<>();
             claims.put("roles", authentication.getAuthorities().stream()
