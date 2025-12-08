@@ -337,7 +337,7 @@
                         class="category-color-dot"
                         :style="{ background: categoryForms[category.id]?.color || '#adb5bd' }"
                       ></span>
-                      <span>{{ categoryForms[category.id]?.name }}</span>
+                      <span>{{ getCategoryDisplayName(category) }}{{ categoryForms[category.id]?.price ? ' ' + formatRub(parseInt(categoryForms[category.id].price) * 100) : '' }}</span>
                     </div>
                     <label class="form-label small">Цена (₽)</label>
                     <input
@@ -393,7 +393,7 @@
                           <td>
                             <select class="form-select form-select-sm" v-model="tableSelections[assignment.tableNumber]">
                               <option v-for="category in seatCategories" :key="category.id" :value="category.id">
-                                {{ category.name }}
+                                {{ getCategoryDisplayName(category) }} • {{ formatRub(category.priceCents) }}
                               </option>
                             </select>
                           </td>
@@ -1165,6 +1165,11 @@ const formatRub = (cents: number) =>
   new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB', maximumFractionDigits: 0 }).format(
     cents / 100
   );
+
+const getCategoryDisplayName = (category: SeatCategorySummary) => {
+  // Убираем цену из названия категории (удаляем все цифры, пробелы и символ ₽)
+  return category.name.replace(/\s*\d+[\s₽]*/g, '').trim() || category.name;
+};
 
 const displayPriceInput = (cents?: number | null) => (cents != null ? Math.round(cents / 100).toString() : '');
 

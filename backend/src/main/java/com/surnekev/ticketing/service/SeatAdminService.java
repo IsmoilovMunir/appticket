@@ -68,6 +68,8 @@ public class SeatAdminService {
     @Transactional(readOnly = true)
     public List<SeatTableAssignmentDto> listTableAssignments(Long concertId) {
         Long resolvedConcertId = resolveConcertId(concertId);
+        // Очищаем контекст persistence, чтобы избежать устаревших данных категорий/мест
+        entityManager.clear();
         List<Seat> seats = seatRepository.findByConcertIdOrderByTableNumberAscChairNumberAsc(resolvedConcertId);
         Map<Integer, List<Seat>> grouped = seats.stream()
                 .collect(Collectors.groupingBy(Seat::getTableNumber, Collectors.toCollection(ArrayList::new)));

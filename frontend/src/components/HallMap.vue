@@ -106,16 +106,19 @@ const fitToViewport = (options: { preserveRelative?: boolean } = {}) => {
   if (!viewportEl) return;
   const { width, height } = getSvgDimensions();
   const viewportWidth = viewportEl.clientWidth || window.innerWidth;
-  const viewportHeight = viewportEl.clientHeight || window.innerHeight * 0.7;
+  const viewportHeight = viewportEl.clientHeight || window.innerHeight * 0.8;
+  // Используем меньший масштаб, чтобы карта помещалась и была возможность прокрутки
   const widthScale = viewportWidth / width;
   const heightScale = viewportHeight / height;
   const baseFactor = currentBaseFactor();
-  const targetBase = clampZoom(Math.min(widthScale, heightScale) * baseFactor);
+  // Используем 90% от минимального масштаба для лучшей видимости и прокрутки
+  const targetBase = clampZoom(Math.min(widthScale, heightScale) * baseFactor * 0.9);
   const relative = preserveRelative ? zoom.value / baseZoom.value : 1;
   baseZoom.value = targetBase;
   setZoom(baseZoom.value * relative);
   if (!preserveRelative) {
-    centerViewport('auto');
+    // Не центрируем автоматически, чтобы была видна левая часть карты
+    viewportEl.scrollTo({ top: 0, left: 0, behavior: 'auto' });
   }
 };
 

@@ -249,13 +249,39 @@ table {
 }
 
 .hall-map-viewport {
-  overflow: auto;
-  height: calc(100vh - 100px);
+  overflow-x: auto;
+  overflow-y: auto;
+  width: 100%;
+  height: 100%;
+  min-height: 600px;
   background: #fff;
   border-radius: 16px;
   display: flex;
-  justify-content: center;
+  justify-content: flex-start;
+  align-items: flex-start;
   position: relative;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0, 0, 0, 0.3) transparent;
+}
+
+.hall-map-viewport::-webkit-scrollbar {
+  width: 12px;
+  height: 12px;
+}
+
+.hall-map-viewport::-webkit-scrollbar-track {
+  background: transparent;
+  border-radius: 6px;
+}
+
+.hall-map-viewport::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 6px;
+}
+
+.hall-map-viewport::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.5);
 }
 
 .hall-img {
@@ -416,7 +442,7 @@ table {
 
 .seat-map-layout {
   height: calc(100vh - 160px);
-  min-height: 480px;
+  min-height: 600px;
 }
 
 .seat-map-layout .seat-map-column,
@@ -494,8 +520,9 @@ table {
   }
 
   .hall-map-viewport {
-    height: 75vh;
-    min-height: 550px;
+    height: 80vh;
+    min-height: 600px;
+    width: 100%;
   }
 }
 

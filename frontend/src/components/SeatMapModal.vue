@@ -116,7 +116,7 @@
                     <div class="fw-semibold small">
                       Стол {{ seat.tableNumber }}, Место {{ seat.chairNumber }}
                     </div>
-                    <div class="text-body-secondary" style="font-size: 0.75rem;">{{ seat.categoryName }}</div>
+                    <div class="text-body-secondary" style="font-size: 0.75rem;">{{ getCategoryDisplayName(seat.categoryName) }}</div>
                   </div>
                   <div class="fw-semibold small ms-2">{{ formatPrice(seat.priceCents) }}</div>
                 </div>
@@ -346,6 +346,11 @@ const submitReservation = async () => {
 };
 
 const close = () => emit('close');
+
+const getCategoryDisplayName = (categoryName: string) => {
+  // Убираем цену из названия категории (удаляем все цифры, пробелы и символ ₽)
+  return categoryName.replace(/\s*\d+[\s₽]*/g, '').trim() || categoryName;
+};
 
 const getTicketText = (count: number): string => {
   const lastDigit = count % 10;

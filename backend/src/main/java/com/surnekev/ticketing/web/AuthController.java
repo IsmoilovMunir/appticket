@@ -41,9 +41,9 @@ public class AuthController {
 
             // Успешный логин - сбрасываем счетчик попыток
             try {
-                String clientIp = getClientIp(httpRequest);
-                String key = "rate_limit:login:" + clientIp;
-                redisTemplate.delete(key);
+            String clientIp = getClientIp(httpRequest);
+            String key = "rate_limit:login:" + clientIp;
+            redisTemplate.delete(key);
             } catch (Exception e) {
                 // Если Redis недоступен, логируем предупреждение и продолжаем работу
                 log.warn("Redis unavailable for clearing rate limit: {}", e.getMessage());
