@@ -22,3 +22,19 @@ backend/build/
 # SSL certificates
 infrastructure/ssl/
 
+# Environment files
+.env
+.env.local
+backend/.env.local
+infrastructure/.env
+*.env.local
+
+# Database backups
+*.sql
+infrastructure/backup.sql
+
+# Setup scripts (optional - можно оставить или убрать)
+# backend/setup-local-env.sh
+# infrastructure/setup_db.sh
+# clear_db.sh
+

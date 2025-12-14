@@ -1,0 +1,12 @@
+# Конфигурация для локального запуска приложения
+# Скопируйте этот файл в application-local.yml и настройте под свои нужды
+# Или создайте файл .env в папке backend/ с этими переменными
+
+# Для использования создайте файл .env в папке backend/ или установите переменные окружения:
+# 
+# DB_URL=jdbc:postgresql://localhost:15432/tickets
+# DB_USERNAME=ticket
+# DB_PASSWORD=ваш_пароль
+# REDIS_HOST=localhost
+# REDIS_PORT=6379
+

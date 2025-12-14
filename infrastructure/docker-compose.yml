@@ -89,13 +89,14 @@ services:
     depends_on:
       - backend
     ports:
-      - "4173:4173"
+      - "4173:80"
     restart: unless-stopped
 
   nginx:
     image: nginx:1.27
     volumes:
       - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./ssl:/etc/nginx/ssl:ro
     ports:
       - "80:80"
       - "443:443"
