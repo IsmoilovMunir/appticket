@@ -145,6 +145,39 @@ public class TicketService {
                 .orElseThrow(() -> new IllegalArgumentException("Ticket not found"));
     }
 
+    /**
+     * Предварительная проверка билета без изменения его статуса
+     */
+    @Transactional(readOnly = true)
+    public CheckinResponse previewCheckIn(String token) {
+        var ticket = ticketRepository.findByTicketToken(token)
+                .orElseThrow(() -> new IllegalArgumentException("Ticket not found"));
+
+        if (ticket.getStatus() == TicketStatus.CANCELLED) {
+            return new CheckinResponse(CheckinResult.INVALID, ticket.getBuyerName(),
+                    seatMapper.toDto(ticket.getSeat(), null), ticket.getCheckedInAt());
+        }
+
+        if (ticket.getStatus() == TicketStatus.RESERVED) {
+            return new CheckinResponse(CheckinResult.INVALID, ticket.getBuyerName(),
+                    seatMapper.toDto(ticket.getSeat(), null), ticket.getCheckedInAt());
+        }
+
+        if (ticket.getStatus() == TicketStatus.USED) {
+            return new CheckinResponse(CheckinResult.DUPLICATE, ticket.getBuyerName(),
+                    seatMapper.toDto(ticket.getSeat(), null), ticket.getCheckedInAt());
+        }
+
+        if (ticket.getStatus() != TicketStatus.SOLD) {
+            return new CheckinResponse(CheckinResult.INVALID, ticket.getBuyerName(),
+                    seatMapper.toDto(ticket.getSeat(), null), ticket.getCheckedInAt());
+        }
+
+        // Билет валиден и готов к регистрации, но статус не меняем
+        SeatDto seatDto = seatMapper.toDto(ticket.getSeat(), null);
+        return new CheckinResponse(CheckinResult.APPROVED, ticket.getBuyerName(), seatDto, ticket.getCheckedInAt());
+    }
+
     @Transactional
     public CheckinResponse checkIn(String token, String operator) {
         var ticket = ticketRepository.findByTicketToken(token)
@@ -189,6 +222,37 @@ public class TicketService {
                 ticket.getIssuedAt(),
                 ticket.getCheckedInAt()
         );
+    }
+
+    /**
+     * Получить список использованных билетов (только для админа)
+     */
+    @Transactional(readOnly = true)
+    public List<TicketDto> getUsedTickets() {
+        return ticketRepository.findAllByStatus(TicketStatus.USED).stream()
+                .sorted(Comparator.comparing(Ticket::getCheckedInAt, Comparator.nullsLast(Comparator.reverseOrder())))
+                .map(this::toDto)
+                .toList();
+    }
+
+    /**
+     * Вернуть билет из статуса USED обратно в SOLD (только для админа)
+     */
+    @Transactional
+    public TicketDto revertTicketStatus(UUID ticketId, String operator) {
+        Ticket ticket = ticketRepository.findById(ticketId)
+                .orElseThrow(() -> new IllegalArgumentException("Ticket not found"));
+
+        if (ticket.getStatus() != TicketStatus.USED) {
+            throw new IllegalStateException("Ticket is not in USED status. Current status: " + ticket.getStatus());
+        }
+
+        ticket.setStatus(TicketStatus.SOLD);
+        ticket.setCheckedInAt(null);
+        ticket.setCheckedInBy(null);
+        ticketRepository.save(ticket);
+
+        return toDto(ticket);
     }
 
     private String buildAttachmentName(Ticket ticket) {

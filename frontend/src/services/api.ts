@@ -182,5 +182,15 @@ export const searchTickets = async (phone?: string, name?: string, ticketId?: st
   return data;
 };
 
+export const fetchUsedTickets = async () => {
+  const { data } = await apiClient.get<Ticket[]>('/admin/tickets/used');
+  return data;
+};
+
+export const revertTicketStatus = async (ticketId: string) => {
+  const { data } = await apiClient.post<Ticket>(`/admin/tickets/${ticketId}/revert`);
+  return data;
+};
+
 export const apiClient = api;
 

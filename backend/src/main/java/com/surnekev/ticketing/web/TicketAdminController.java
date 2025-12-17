@@ -94,6 +94,24 @@ public class TicketAdminController {
         return ticketService.searchTickets(phone, name, ticketId);
     }
 
+    /**
+     * Получить список использованных билетов (только для админа)
+     */
+    @GetMapping("/used")
+    @PreAuthorize("hasRole('ADMIN')")
+    public List<TicketDto> getUsedTickets() {
+        return ticketService.getUsedTickets();
+    }
+
+    /**
+     * Вернуть билет из статуса USED обратно в SOLD (только для админа)
+     */
+    @PostMapping("/{id}/revert")
+    @PreAuthorize("hasRole('ADMIN')")
+    public TicketDto revertTicketStatus(@PathVariable UUID id, Authentication authentication) {
+        return ticketService.revertTicketStatus(id, authentication.getName());
+    }
+
     private List<TicketDto> toDtos(List<UUID> ticketIds) {
         return ticketIds.stream()
                 .distinct()

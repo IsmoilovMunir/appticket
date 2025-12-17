@@ -415,6 +415,64 @@
                 </div>
 
                 <!-- Пользователи -->
+                <!-- Использованные билеты (только для админа) -->
+                <div v-if="activeSection === 'used-tickets'">
+                  <div class="d-flex justify-content-between align-items-center mb-3">
+                    <span class="text-body-secondary small">Использованных билетов: {{ usedTickets.length }}</span>
+                    <button class="btn btn-outline-primary btn-sm" :disabled="usedTicketsLoading" @click="loadUsedTickets">
+                      <i class="bi bi-arrow-clockwise me-1"></i>
+                      Обновить
+                    </button>
+                  </div>
+                  
+                  <div v-if="usedTicketsError" class="alert alert-danger mb-3">
+                    {{ usedTicketsError }}
+                  </div>
+                  
+                  <div v-if="usedTicketsLoading" class="text-center py-4">
+                    <div class="spinner-border text-primary" role="status">
+                      <span class="visually-hidden">Загрузка...</span>
+                    </div>
+                  </div>
+                  
+                  <div v-else-if="usedTickets.length === 0" class="text-center py-4 text-body-secondary">
+                    <i class="bi bi-inbox" style="font-size: 3rem;"></i>
+                    <p class="mt-3 mb-0">Нет использованных билетов</p>
+                  </div>
+                  
+                  <div v-else class="list-group">
+                    <div 
+                      v-for="ticket in usedTickets" 
+                      :key="ticket.id"
+                      class="list-group-item"
+                    >
+                      <div class="d-flex justify-content-between align-items-start">
+                        <div class="flex-grow-1">
+                          <h6 class="mb-1">{{ ticket.buyerName }}</h6>
+                          <p class="mb-1 small text-body-secondary">
+                            Телефон: {{ ticket.buyerPhone }}
+                          </p>
+                          <p class="mb-1 small" v-if="ticket.seat">
+                            Место: Стол {{ ticket.seat.tableNumber }}, место {{ ticket.seat.chairNumber }}
+                          </p>
+                          <p class="mb-0 small text-body-secondary" v-if="ticket.checkedInAt">
+                            Использован: {{ formatDate(ticket.checkedInAt) }}
+                          </p>
+                        </div>
+                        <button
+                          class="btn btn-sm btn-warning ms-2"
+                          @click="handleRevertTicket(ticket.id)"
+                          :disabled="revertLoading[ticket.id]"
+                        >
+                          <span v-if="revertLoading[ticket.id]" class="spinner-border spinner-border-sm me-1"></span>
+                          <i v-else class="bi bi-arrow-counterclockwise me-1"></i>
+                          Вернуть в продажу
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
                 <div v-if="activeSection === 'users'">
                   <!-- Список пользователей -->
                   <div class="card border-primary mb-4">
@@ -650,7 +708,9 @@ import {
   confirmManagerRegistration,
   fetchAdminUsers,
   searchTickets,
-  refundTicket
+  refundTicket,
+  fetchUsedTickets,
+  revertTicketStatus
 } from '../services/api';
 import type { Ticket, SeatCategorySummary, SeatTableAssignment, AdminUser } from '../types';
 
@@ -719,47 +779,77 @@ const ticketSections = [
   { key: 'CANCELLED', label: 'Отменённые' }
 ] as const;
 
-const dashboardSections = [
-  {
-    key: 'tickets',
-    title: 'Билеты',
-    description: 'Управление билетами',
-    icon: 'bi bi-ticket-perforated',
-    iconClass: 'text-primary'
-  },
-  {
-    key: 'refunds',
-    title: 'Возвраты',
-    description: 'Возврат проданных билетов',
-    icon: 'bi bi-arrow-counterclockwise',
-    iconClass: 'text-danger'
-  },
-  {
-    key: 'reservations',
-    title: 'Резервы',
-    description: 'Подтверждение и отмена',
-    icon: 'bi bi-calendar-check',
-    iconClass: 'text-success'
-  },
-  {
-    key: 'seat-config',
-    title: 'Конфигурация зала',
-    description: 'Настройка категорий и цен',
-    icon: 'bi bi-gear',
-    iconClass: 'text-info'
-  },
-  {
-    key: 'users',
-    title: 'Пользователи',
-    description: 'Управление менеджерами',
-    icon: 'bi bi-people',
-    iconClass: 'text-warning'
+const dashboardSections = computed(() => {
+  const sections = [
+    {
+      key: 'tickets',
+      title: 'Билеты',
+      description: 'Управление билетами',
+      icon: 'bi bi-ticket-perforated',
+      iconClass: 'text-primary'
+    },
+    {
+      key: 'refunds',
+      title: 'Возвраты',
+      description: 'Возврат проданных билетов',
+      icon: 'bi bi-arrow-counterclockwise',
+      iconClass: 'text-danger'
+    },
+    {
+      key: 'reservations',
+      title: 'Резервы',
+      description: 'Подтверждение и отмена',
+      icon: 'bi bi-calendar-check',
+      iconClass: 'text-success'
+    },
+    {
+      key: 'seat-config',
+      title: 'Конфигурация зала',
+      description: 'Настройка категорий и цен',
+      icon: 'bi bi-gear',
+      iconClass: 'text-info'
+    },
+    {
+      key: 'users',
+      title: 'Пользователи',
+      description: 'Управление менеджерами',
+      icon: 'bi bi-people',
+      iconClass: 'text-warning'
+    }
+  ];
+  
+  // Добавляем раздел для использованных билетов только для админа
+  if (isAdmin.value) {
+    sections.push({
+      key: 'used-tickets',
+      title: 'Использованные билеты',
+      description: 'Просмотр и управление использованными билетами',
+      icon: 'bi bi-check-circle',
+      iconClass: 'text-success'
+    });
   }
-];
+  
+  return sections;
+});
 
 const isAuthenticated = computed(() => !!adminStore.token);
 const selectedCount = computed(() => selectedTicketIds.value.size);
 const hasSelection = computed(() => selectedCount.value > 0);
+
+// Проверка, является ли пользователь админом (может видеть список пользователей)
+const isAdmin = ref(false);
+const checkAdminAccess = async () => {
+  if (!isAuthenticated.value) {
+    isAdmin.value = false;
+    return;
+  }
+  try {
+    await fetchAdminUsers();
+    isAdmin.value = true;
+  } catch (error: any) {
+    isAdmin.value = error.response?.status !== 403;
+  }
+};
 
 const ticketsByStatus = computed(() =>
   ticketSections.reduce<Record<string, Ticket[]>>((acc, section) => {
@@ -785,6 +875,12 @@ const refundSearchPerformed = ref(false);
 const refundReasons = ref<Record<string, string>>({});
 const refundLoading = ref(false);
 
+// Использованные билеты (только для админа)
+const usedTickets = ref<Ticket[]>([]);
+const usedTicketsLoading = ref(false);
+const usedTicketsError = ref('');
+const revertLoading = ref<Record<string, boolean>>({});
+
 const getSectionCount = (key: string) => {
   switch (key) {
     case 'tickets':
@@ -803,12 +899,12 @@ const getSectionCount = (key: string) => {
 };
 
 const getSectionTitle = (key: string) => {
-  const section = dashboardSections.find(s => s.key === key);
+  const section = dashboardSections.value.find(s => s.key === key);
   return section?.title || '';
 };
 
 const getSectionDescription = (key: string) => {
-  const section = dashboardSections.find(s => s.key === key);
+  const section = dashboardSections.value.find(s => s.key === key);
   return section?.description || '';
 };
 
@@ -822,6 +918,8 @@ const openSection = (key: string) => {
     loadUsers();
   } else if (key === 'refunds') {
     clearRefundSearch();
+  } else if (key === 'used-tickets') {
+    loadUsedTickets();
   }
 };
 
@@ -834,10 +932,12 @@ const loadUsers = async () => {
   usersError.value = '';
   try {
     users.value = await fetchAdminUsers();
+    isAdmin.value = true; // Если удалось загрузить, значит админ
   } catch (error: any) {
     console.error('Error loading users:', error);
     if (error.response?.status === 403) {
       usersError.value = 'Недостаточно прав для просмотра списка пользователей';
+      isAdmin.value = false;
     } else if (error.response?.status === 401) {
       usersError.value = 'Требуется авторизация';
     } else if (error.response?.data?.error) {
@@ -847,6 +947,46 @@ const loadUsers = async () => {
     }
   } finally {
     usersLoading.value = false;
+  }
+};
+
+const loadUsedTickets = async () => {
+  if (!isAuthenticated.value || !isAdmin.value) {
+    usedTickets.value = [];
+    return;
+  }
+  usedTicketsLoading.value = true;
+  usedTicketsError.value = '';
+  try {
+    usedTickets.value = await fetchUsedTickets();
+  } catch (error: any) {
+    console.error('Error loading used tickets:', error);
+    if (error.response?.status === 403) {
+      usedTicketsError.value = 'Недостаточно прав для просмотра использованных билетов';
+    } else if (error.response?.status === 401) {
+      usedTicketsError.value = 'Требуется авторизация';
+    } else {
+      usedTicketsError.value = 'Не удалось загрузить список использованных билетов';
+    }
+  } finally {
+    usedTicketsLoading.value = false;
+  }
+};
+
+const handleRevertTicket = async (ticketId: string) => {
+  if (!confirm('Вы уверены, что хотите вернуть этот билет в статус "Продан"? Это действие нельзя отменить.')) {
+    return;
+  }
+  
+  revertLoading.value[ticketId] = true;
+  try {
+    await revertTicketStatus(ticketId);
+    await loadUsedTickets(); // Обновляем список
+  } catch (error: any) {
+    console.error('Error reverting ticket:', error);
+    alert('Не удалось изменить статус билета: ' + (error.response?.data?.error || error.message || 'Неизвестная ошибка'));
+  } finally {
+    revertLoading.value[ticketId] = false;
   }
 };
 
@@ -1301,6 +1441,15 @@ onMounted(() => {
   if (isAuthenticated.value) {
     refreshTickets();
     loadSeatConfig();
+    checkAdminAccess();
+  }
+});
+
+watch(isAuthenticated, (newVal) => {
+  if (newVal) {
+    checkAdminAccess();
+  } else {
+    isAdmin.value = false;
   }
 });
 
