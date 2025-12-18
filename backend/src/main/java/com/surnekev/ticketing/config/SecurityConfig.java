@@ -40,6 +40,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/health").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/reservations").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/checkin").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/partner-request").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/auth/login").permitAll()
                         .requestMatchers("/api/telegram/webhook").permitAll()
                         // Swagger только для разработки - в продакшене закрыть!

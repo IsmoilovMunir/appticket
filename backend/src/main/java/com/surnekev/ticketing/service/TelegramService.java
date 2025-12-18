@@ -260,6 +260,53 @@ public class TelegramService {
         }
     }
 
+    public void sendPartnerRequest(String fullName, String company, String phone, String email) {
+        if (!isConfigured()) {
+            log.warn("Telegram bot not configured, cannot send partner request");
+            return;
+        }
+
+        String message = String.format("""
+                🤝 <b>Новая заявка на партнёрство</b>
+                
+                <b>ФИО:</b> %s
+                <b>Компания:</b> %s
+                <b>Телефон:</b> <code>%s</code>
+                <b>Email:</b> <code>%s</code>
+                
+                📅 <i>Время заявки: %s</i>
+                """, 
+                fullName, 
+                company, 
+                phone, 
+                email,
+                java.time.LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm")));
+
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("chat_id", managerChatId);
+        payload.put("text", message);
+        payload.put("parse_mode", "HTML");
+
+        try {
+            persistLog(TelegramLog.Direction.OUTBOUND, Map.of(
+                    "method", "sendMessage",
+                    "type", "partner_request",
+                    "company", company,
+                    "fullName", fullName
+            ));
+            ResponseEntity<TelegramMessageResponse> response = restTemplate.postForEntity(
+                    apiUrl("sendMessage"), payload, TelegramMessageResponse.class);
+            persistLog(TelegramLog.Direction.INBOUND, response.getBody());
+            if (response.getBody() == null || !response.getBody().isOk()) {
+                log.warn("Failed to send partner request to Telegram: {}", response);
+                throw new RuntimeException("Не удалось отправить заявку в Telegram");
+            }
+        } catch (Exception ex) {
+            log.error("Failed to send partner request to Telegram", ex);
+            throw new RuntimeException("Не удалось отправить заявку в Telegram", ex);
+        }
+    }
+
     private boolean isConfigured() {
         return StringUtils.hasText(botToken) && StringUtils.hasText(managerChatId);
     }

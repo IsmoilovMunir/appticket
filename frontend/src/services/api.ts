@@ -192,5 +192,16 @@ export const revertTicketStatus = async (ticketId: string) => {
   return data;
 };
 
+// Partner Request API
+export const submitPartnerRequest = async (request: {
+  fullName: string;
+  company: string;
+  phone: string;
+  email: string;
+}) => {
+  const { data } = await apiClient.post<{ message: string }>('/partner-request', request);
+  return data;
+};
+
 export const apiClient = api;
 

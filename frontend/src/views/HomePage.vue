@@ -110,7 +110,7 @@
               class="col-lg-6 col-md-6 partner-sponsor-wrapper partner-card-animated"
             >
               <div class="partner-card partner-card-general" @click="openSponsorModal(sponsor)">
-                <div class="partner-logo-wrapper" @mouseenter="hoveredSponsor = index" @mouseleave="hoveredSponsor = null">
+                <div class="partner-logo-wrapper">
                   <div class="partner-logo partner-logo-general">
                     <img 
                       v-if="sponsor.logo" 
@@ -126,39 +126,6 @@
                   Генеральный спонсор
                 </div>
               </div>
-              
-              <!-- Info Tooltip (outside card to avoid overflow issues) -->
-              <div 
-                v-if="sponsor.description && hoveredSponsor === index" 
-                class="partner-info-tooltip"
-                @mouseenter="hoveredSponsor = index"
-                @mouseleave="hoveredSponsor = null"
-              >
-                <div class="partner-info-content">
-                  <h4 class="partner-info-title">{{ sponsor.name }}</h4>
-                  <p class="partner-info-description">{{ sponsor.description }}</p>
-                  
-                  <div v-if="sponsor.services && sponsor.services.length > 0" class="partner-info-services">
-                    <h5 class="partner-info-services-title">Наши услуги:</h5>
-                    <ul class="partner-info-services-list">
-                      <li v-for="(service, i) in sponsor.services" :key="i">{{ service }}</li>
-                    </ul>
-                  </div>
-                  
-                  <div v-if="sponsor.telegram" class="partner-info-telegram">
-                    <a 
-                      :href="sponsor.telegram" 
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                      class="partner-telegram-link"
-                    >
-                      <i class="bi bi-telegram"></i>
-                      {{ sponsor.telegramChannel || 'Наш Telegram канал' }}
-                    </a>
-                  </div>
-                </div>
-                <div class="partner-info-arrow"></div>
-              </div>
             </div>
           </div>
           
@@ -171,7 +138,7 @@
                 class="partner-sponsor-wrapper partner-sponsor-mobile partner-card-animated"
               >
                 <div class="partner-card partner-card-general" @click="openSponsorModal(sponsor)">
-                  <div class="partner-logo-wrapper" @mouseenter="hoveredSponsor = index" @mouseleave="hoveredSponsor = null">
+                  <div class="partner-logo-wrapper">
                     <div class="partner-logo partner-logo-general">
                       <img 
                         v-if="sponsor.logo" 
@@ -186,39 +153,6 @@
                     <i class="bi bi-award-fill"></i>
                     Генеральный спонсор
                   </div>
-                </div>
-                
-                <!-- Info Tooltip for mobile -->
-                <div 
-                  v-if="sponsor.description && hoveredSponsor === index" 
-                  class="partner-info-tooltip partner-info-tooltip-mobile"
-                  @mouseenter="hoveredSponsor = index"
-                  @mouseleave="hoveredSponsor = null"
-                >
-                  <div class="partner-info-content">
-                    <h4 class="partner-info-title">{{ sponsor.name }}</h4>
-                    <p class="partner-info-description">{{ sponsor.description }}</p>
-                    
-                    <div v-if="sponsor.services && sponsor.services.length > 0" class="partner-info-services">
-                      <h5 class="partner-info-services-title">Наши услуги:</h5>
-                      <ul class="partner-info-services-list">
-                        <li v-for="(service, i) in sponsor.services" :key="i">{{ service }}</li>
-                      </ul>
-                    </div>
-                    
-                    <div v-if="sponsor.telegram" class="partner-info-telegram">
-                      <a 
-                        :href="sponsor.telegram" 
-                        target="_blank" 
-                        rel="noopener noreferrer"
-                        class="partner-telegram-link"
-                      >
-                        <i class="bi bi-telegram"></i>
-                        {{ sponsor.telegramChannel || 'Наш Telegram канал' }}
-                      </a>
-                    </div>
-                  </div>
-                  <div class="partner-info-arrow"></div>
                 </div>
               </div>
             </div>
@@ -241,10 +175,40 @@
               :key="`partner-${partner.name}-${index}`"
               class="col-lg-3 col-md-4 col-6 col-sm-6 partner-card-animated"
             >
-              <div class="partner-card partner-card-event">
+              <div 
+                v-if="partner.isPlaceholder"
+                class="partner-card partner-card-event partner-card-placeholder"
+                @click="handlePlaceholderClick"
+                style="cursor: pointer;"
+              >
                 <div class="partner-logo-wrapper">
                   <div class="partner-logo partner-logo-event">
-                    <span class="partner-logo-text">{{ partner.name }}</span>
+                    <div class="partner-placeholder-content">
+                      <i class="bi bi-plus-circle-fill partner-placeholder-icon"></i>
+                      <span class="partner-logo-text partner-placeholder-text">{{ partner.placeholderText || partner.name }}</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="partner-badge-event partner-badge-placeholder">
+                  <i class="bi bi-info-circle-fill"></i>
+                  {{ partner.description || 'Место свободно' }}
+                </div>
+              </div>
+              <div 
+                v-else
+                class="partner-card partner-card-event" 
+                @click="handleEventPartnerClick(partner)"
+                style="cursor: pointer;"
+              >
+                <div class="partner-logo-wrapper">
+                  <div class="partner-logo partner-logo-event">
+                    <img 
+                      v-if="partner.logo" 
+                      :src="partner.logo" 
+                      :alt="partner.name"
+                      class="partner-logo-img"
+                    />
+                    <span v-else class="partner-logo-text">{{ partner.name }}</span>
                   </div>
                 </div>
                 <div class="partner-badge-event">
@@ -366,7 +330,128 @@
       </div>
     </section>
 
+    <!-- Partners Carousel Section -->
+    <section class="partners-carousel-section">
+      <div class="partners-carousel-container">
+        <div class="partners-carousel-track">
+          <div class="partners-carousel-item">
+            <img :src="chidSvgLogo" alt="CHID" class="partners-carousel-logo" />
+          </div>
+          <div class="partners-carousel-item">
+            <img :src="asakiLogo" alt="Асаки" class="partners-carousel-logo partners-carousel-logo-asaki" />
+          </div>
+          <div class="partners-carousel-item">
+            <img :src="drnematboevLogo" alt="Dr. Nematboev" class="partners-carousel-logo" />
+          </div>
+          <div class="partners-carousel-item">
+            <img :src="smartxLogo" alt="SmartX" class="partners-carousel-logo" />
+          </div>
+          <!-- Duplicate for seamless loop -->
+          <div class="partners-carousel-item">
+            <img :src="chidSvgLogo" alt="CHID" class="partners-carousel-logo" />
+          </div>
+          <div class="partners-carousel-item">
+            <img :src="asakiLogo" alt="Асаки" class="partners-carousel-logo partners-carousel-logo-asaki" />
+          </div>
+          <div class="partners-carousel-item">
+            <img :src="drnematboevLogo" alt="Dr. Nematboev" class="partners-carousel-logo" />
+          </div>
+          <div class="partners-carousel-item">
+            <img :src="smartxLogo" alt="SmartX" class="partners-carousel-logo" />
+          </div>
+        </div>
+      </div>
+    </section>
+
     <SeatMapModal :open="modalOpen" :concert-id="concertId" @close="modalOpen = false" />
+
+    <!-- Partner Request Modal -->
+    <div v-if="showPartnerRequestModal" class="sponsor-modal-overlay" @click="closePartnerRequestModal">
+      <div class="sponsor-modal" @click.stop>
+        <button class="sponsor-modal-close" @click="closePartnerRequestModal">
+          <i class="bi bi-x-lg"></i>
+        </button>
+        <div class="sponsor-modal-content">
+          <div class="sponsor-modal-header">
+            <h3 class="sponsor-modal-title">Стать партнёром</h3>
+            <p class="text-body-secondary mb-0">Заполните форму, и мы свяжемся с вами</p>
+          </div>
+          
+          <form @submit.prevent="submitPartnerRequest" class="mt-4">
+            <div class="mb-3">
+              <label class="form-label">ФИО *</label>
+              <input 
+                v-model="partnerRequestForm.fullName" 
+                type="text" 
+                class="form-control" 
+                placeholder="Иванов Иван Иванович"
+                required
+              />
+            </div>
+            
+            <div class="mb-3">
+              <label class="form-label">Компания *</label>
+              <input 
+                v-model="partnerRequestForm.company" 
+                type="text" 
+                class="form-control" 
+                placeholder="Название компании"
+                required
+              />
+            </div>
+            
+            <div class="mb-3">
+              <label class="form-label">Номер телефона *</label>
+              <input 
+                v-model="partnerRequestForm.phone" 
+                type="tel" 
+                class="form-control" 
+                placeholder="+7 (999) 123-45-67"
+                required
+              />
+            </div>
+            
+            <div class="mb-3">
+              <label class="form-label">Email *</label>
+              <input 
+                v-model="partnerRequestForm.email" 
+                type="email" 
+                class="form-control" 
+                placeholder="example@mail.com"
+                required
+              />
+            </div>
+            
+            <div v-if="partnerRequestError" class="alert alert-danger mb-3">
+              {{ partnerRequestError }}
+            </div>
+            
+            <div v-if="partnerRequestSuccess" class="alert alert-success mb-3">
+              Заявка успешно отправлена! Мы свяжемся с вами в ближайшее время.
+            </div>
+            
+            <div class="d-flex gap-2">
+              <button 
+                type="submit" 
+                class="btn btn-primary flex-grow-1"
+                :disabled="partnerRequestLoading"
+              >
+                <span v-if="partnerRequestLoading" class="spinner-border spinner-border-sm me-2"></span>
+                Отправить заявку
+              </button>
+              <button 
+                type="button" 
+                class="btn btn-outline-secondary"
+                @click="closePartnerRequestModal"
+                :disabled="partnerRequestLoading"
+              >
+                Отмена
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
 
     <!-- Sponsor Info Modal -->
     <div v-if="selectedSponsor" class="sponsor-modal-overlay" @click="closeSponsorModal">
@@ -387,7 +472,7 @@
           </div>
           
           <div v-if="selectedSponsor.description" class="sponsor-modal-description">
-            <p>{{ selectedSponsor.description }}</p>
+            <p style="white-space: pre-line;">{{ selectedSponsor.description }}</p>
           </div>
           
           <div v-if="selectedSponsor.services && selectedSponsor.services.length > 0" class="sponsor-modal-services">
@@ -423,12 +508,26 @@ import ConcertHero from '../components/ConcertHero.vue';
 import SeatMapModal from '../components/SeatMapModal.vue';
 import { useConcertStore } from '../stores/concertStore';
 import { storeToRefs } from 'pinia';
-import chidLogo from '../assets/chidlogo.png';
+import { submitPartnerRequest as apiSubmitPartnerRequest } from '../services/api';
+import chidLogo from '../assets/chid.svg';
+import asakiLogo from '../assets/asaki.svg';
+import drnematboevLogo from '../assets/drnematboev.svg';
+import smartxLogo from '../assets/smartx.svg';
+import chidSvgLogo from '../assets/chid.svg';
 
 const concertId = 1;
 const modalOpen = ref(false);
-const hoveredSponsor = ref<number | null>(null);
 const selectedSponsor = ref<any>(null);
+const showPartnerRequestModal = ref(false);
+const partnerRequestForm = ref({
+  fullName: '',
+  company: '',
+  phone: '',
+  email: ''
+});
+const partnerRequestLoading = ref(false);
+const partnerRequestError = ref('');
+const partnerRequestSuccess = ref(false);
 
 const concertStore = useConcertStore();
 const { concert } = storeToRefs(concertStore);
@@ -491,7 +590,7 @@ const originalGeneralSponsors = [
   { 
     name: 'CHID Агентство недвижимости',
     logo: chidLogo,
-    description: 'Профессиональное агентство недвижимости с многолетним опытом работы на рынке. Мы помогаем найти дом мечты и обеспечить безопасные сделки.',
+    description: 'Надёжные сделки и лучшие предложения — с CHID.\n\nБолее 200 семей уже приобрели свои квартиры с нами.',
     telegram: 'https://t.me/chidestate',
     telegramChannel: '@chidestate',
     services: [
@@ -502,14 +601,39 @@ const originalGeneralSponsors = [
       'Консультации по инвестициям'
     ]
   },
-  { name: 'Спонсор 2' }
+  { 
+    name: 'Ресторан Асаки',
+    logo: asakiLogo,
+    description: 'Ресторан Асаки расположен в Москве по адресу: ул. Юных Ленинцев, 12.\n\nМы проводим банкеты, корпоративные мероприятия, свадьбы и другие торжественные события. У нас уютная атмосфера, изысканная кухня и профессиональное обслуживание.',
+    telegram: '',
+    telegramChannel: '',
+    services: [
+      'Банкеты и торжественные мероприятия',
+      'Корпоративные события',
+      'Свадебные церемонии',
+      'Проведение праздников',
+      'Кейтеринг и выездное обслуживание'
+    ]
+  }
 ];
 
 const originalEventPartners = [
-  { name: 'Партнёр 1' },
-  { name: 'Партнёр 2' },
-  { name: 'Партнёр 3' },
-  { name: 'Партнёр 4' }
+  { 
+    name: 'Партнёр 1',
+    logo: drnematboevLogo,
+    socialMediaUrl: 'https://www.instagram.com/dr.nematboev?igsh=MWJ5MWs4MjQ1eWJrNg=='
+  },
+  { 
+    name: 'Партнёр 2',
+    logo: smartxLogo,
+    telegramUrl: 'https://t.me/SmartXB71'
+  },
+  { 
+    name: 'Ваше место здесь',
+    isPlaceholder: true,
+    placeholderText: 'Стать партнёром',
+    description: 'Место для размещения рекламы свободно'
+  }
 ];
 
 // Reactive arrays for display
@@ -537,6 +661,7 @@ const rotatePartners = () => {
   if (eventPartners.value.length > 1) {
     eventPartners.value = shuffleArray(eventPartners.value);
   }
+
 };
 
 // Start rotation interval
@@ -564,6 +689,52 @@ const openSponsorModal = (sponsor: any) => {
 const closeSponsorModal = () => {
   selectedSponsor.value = null;
   startRotation();
+};
+
+const handleEventPartnerClick = (partner: any) => {
+  // Для партнеров события - переходим на их сайт или соцсеть
+  const url = partner.websiteUrl || partner.socialMediaUrl || partner.telegramUrl;
+  if (url) {
+    window.open(url, '_blank', 'noopener,noreferrer');
+  }
+};
+
+const handlePlaceholderClick = () => {
+  showPartnerRequestModal.value = true;
+  stopRotation();
+};
+
+const closePartnerRequestModal = () => {
+  showPartnerRequestModal.value = false;
+  partnerRequestForm.value = {
+    fullName: '',
+    company: '',
+    phone: '',
+    email: ''
+  };
+  partnerRequestError.value = '';
+  partnerRequestSuccess.value = false;
+  startRotation();
+};
+
+const submitPartnerRequest = async () => {
+  partnerRequestLoading.value = true;
+  partnerRequestError.value = '';
+  partnerRequestSuccess.value = false;
+  
+  try {
+    await apiSubmitPartnerRequest(partnerRequestForm.value);
+    partnerRequestSuccess.value = true;
+    // Закрываем модальное окно через 2 секунды после успешной отправки
+    setTimeout(() => {
+      closePartnerRequestModal();
+    }, 2000);
+  } catch (error: any) {
+    console.error('Error submitting partner request:', error);
+    partnerRequestError.value = error.response?.data?.error || 'Не удалось отправить заявку. Попробуйте позже.';
+  } finally {
+    partnerRequestLoading.value = false;
+  }
 };
 
 onMounted(() => {
@@ -1163,162 +1334,6 @@ onUnmounted(() => {
   }
 }
 
-/* Partner Info Tooltip */
-.partner-info-tooltip {
-  position: absolute;
-  top: 50%;
-  left: calc(100% + 20px);
-  transform: translateY(-50%);
-  width: 350px;
-  max-width: calc(100vw - 40px);
-  z-index: 1000;
-  animation: tooltipFadeIn 0.3s ease-out;
-  pointer-events: auto;
-}
-
-@keyframes tooltipFadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(-50%) translateX(-10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(-50%) translateX(0);
-  }
-}
-
-.partner-info-content {
-  background: #fff;
-  border-radius: 16px;
-  padding: 1.5rem;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
-  border: 2px solid rgba(24, 114, 63, 0.2);
-  position: relative;
-}
-
-.partner-info-arrow {
-  position: absolute;
-  left: -10px;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 0;
-  height: 0;
-  border-top: 10px solid transparent;
-  border-bottom: 10px solid transparent;
-  border-right: 10px solid #fff;
-  filter: drop-shadow(-2px 0 2px rgba(0, 0, 0, 0.1));
-}
-
-.partner-info-title {
-  font-size: 1.25rem;
-  font-weight: 700;
-  color: #18723F;
-  margin-bottom: 0.75rem;
-  padding-bottom: 0.75rem;
-  border-bottom: 2px solid rgba(24, 114, 63, 0.1);
-}
-
-.partner-info-description {
-  font-size: 0.9rem;
-  color: #495057;
-  line-height: 1.6;
-  margin-bottom: 1rem;
-}
-
-.partner-info-services {
-  margin-top: 1rem;
-  padding-top: 1rem;
-  border-top: 1px solid rgba(24, 114, 63, 0.1);
-}
-
-.partner-info-services-title {
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: #18723F;
-  margin-bottom: 0.5rem;
-}
-
-.partner-info-services-list {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-}
-
-.partner-info-services-list li {
-  font-size: 0.8rem;
-  color: #6c757d;
-  padding: 0.25rem 0;
-  padding-left: 1.25rem;
-  position: relative;
-  line-height: 1.5;
-}
-
-.partner-info-services-list li::before {
-  content: '✓';
-  position: absolute;
-  left: 0;
-  color: #18723F;
-  font-weight: bold;
-  font-size: 0.9rem;
-}
-
-.partner-info-telegram {
-  margin-top: 1rem;
-  padding-top: 1rem;
-  border-top: 1px solid rgba(24, 114, 63, 0.1);
-}
-
-.partner-telegram-link {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  color: #0088cc;
-  text-decoration: none;
-  font-size: 0.9rem;
-  font-weight: 600;
-  padding: 0.5rem 1rem;
-  background: rgba(0, 136, 204, 0.1);
-  border-radius: 8px;
-  transition: all 0.3s ease;
-}
-
-.partner-telegram-link:hover {
-  background: rgba(0, 136, 204, 0.2);
-  color: #006ba3;
-  transform: translateX(2px);
-}
-
-.partner-telegram-link i {
-  font-size: 1.1rem;
-}
-
-/* Tooltip positioning for mobile */
-@media (max-width: 992px) {
-  .partner-info-tooltip {
-    left: 50%;
-    top: calc(100% + 15px);
-    transform: translateX(-50%);
-    width: calc(100vw - 2rem);
-    max-width: 400px;
-    position: fixed;
-    z-index: 1001;
-  }
-
-  .partner-info-tooltip-mobile {
-    position: absolute;
-  }
-
-  .partner-info-arrow {
-    left: 50%;
-    top: -10px;
-    transform: translateX(-50%);
-    border-right: 10px solid transparent;
-    border-left: 10px solid transparent;
-    border-top: none;
-    border-bottom: 10px solid #fff;
-    filter: drop-shadow(0 -2px 2px rgba(0, 0, 0, 0.1));
-  }
-}
 
 .partner-badge-general,
 .partner-badge-event {
@@ -1355,6 +1370,82 @@ onUnmounted(() => {
 .partner-badge-general i,
 .partner-badge-event i {
   font-size: 0.9rem;
+}
+
+/* Placeholder Card Styles */
+.partner-card-placeholder {
+  background: linear-gradient(135deg, rgba(24, 114, 63, 0.05) 0%, rgba(111, 66, 193, 0.05) 100%);
+  border: 2px dashed rgba(24, 114, 63, 0.3);
+  position: relative;
+  overflow: hidden;
+}
+
+.partner-card-placeholder::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: linear-gradient(45deg, transparent, rgba(24, 114, 63, 0.1), transparent);
+  animation: shimmer 3s infinite;
+}
+
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%) translateY(-100%) rotate(45deg);
+  }
+  100% {
+    transform: translateX(100%) translateY(100%) rotate(45deg);
+  }
+}
+
+.partner-card-placeholder:hover {
+  border-color: rgba(24, 114, 63, 0.5);
+  background: linear-gradient(135deg, rgba(24, 114, 63, 0.08) 0%, rgba(111, 66, 193, 0.08) 100%);
+  transform: translateY(-2px);
+}
+
+.partner-placeholder-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  width: 100%;
+  height: 100%;
+}
+
+.partner-placeholder-icon {
+  font-size: 3rem;
+  color: rgba(24, 114, 63, 0.4);
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 0.4;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.6;
+    transform: scale(1.05);
+  }
+}
+
+.partner-placeholder-text {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #18723F;
+  text-align: center;
+}
+
+.partner-badge-placeholder {
+  background: rgba(24, 114, 63, 0.15);
+  color: #18723F;
+  border: 1px solid rgba(24, 114, 63, 0.3);
+  font-size: 0.7rem;
+  padding: 0.4rem 0.8rem;
 }
 
 /* Horizontal Scroll Container for Mobile */
@@ -1512,23 +1603,6 @@ onUnmounted(() => {
 
   .partner-logo-img {
     max-height: 70px;
-  }
-
-  .partner-info-tooltip {
-    width: calc(100vw - 2rem);
-    max-width: 350px;
-  }
-
-  .partner-info-content {
-    padding: 1.25rem;
-  }
-
-  .partner-info-title {
-    font-size: 1.1rem;
-  }
-
-  .partner-info-description {
-    font-size: 0.85rem;
   }
 
   /* Mobile scroll adjustments */
@@ -2037,6 +2111,106 @@ onUnmounted(() => {
     font-size: 0.8rem;
     width: 100%;
     text-align: center;
+  }
+}
+
+/* Partners Carousel Section */
+.partners-carousel-section {
+  background-color: #18723F;
+  padding: 0 0 3rem 0;
+  overflow: hidden;
+  position: relative;
+}
+
+.partners-carousel-container {
+  width: 100%;
+  overflow: hidden;
+  position: relative;
+}
+
+.partners-carousel-track {
+  display: flex;
+  align-items: center;
+  gap: 4rem;
+  animation: scroll 30s linear infinite;
+  will-change: transform;
+}
+
+.partners-carousel-item {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 60px;
+  padding: 0 1.5rem;
+  margin: 0;
+}
+
+.partners-carousel-logo {
+  max-height: 100%;
+  max-width: 120px;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  opacity: 0.9;
+  transition: opacity 0.3s ease;
+  /* Изменяем цвет через CSS filter для карусели */
+  filter: brightness(0) saturate(100%) invert(90%) sepia(0%) saturate(0%) hue-rotate(0deg);
+}
+
+.partners-carousel-logo:hover {
+  opacity: 1;
+}
+
+.partners-carousel-logo-asaki {
+  transform: translateY(10px);
+}
+
+@keyframes scroll {
+  0% {
+    transform: translateX(-50%);
+  }
+  100% {
+    transform: translateX(0);
+  }
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .partners-carousel-section {
+    padding: 0 0 2rem 0;
+  }
+
+  .partners-carousel-item {
+    height: 50px;
+    padding: 0 1rem;
+  }
+
+  .partners-carousel-logo {
+    max-width: 100px;
+  }
+
+  .partners-carousel-track {
+    gap: 2rem;
+  }
+}
+
+@media (max-width: 576px) {
+  .partners-carousel-section {
+    padding: 0 0 1.5rem 0;
+  }
+
+  .partners-carousel-item {
+    height: 40px;
+    padding: 0 0.75rem;
+  }
+
+  .partners-carousel-logo {
+    max-width: 80px;
+  }
+
+  .partners-carousel-track {
+    gap: 1.5rem;
   }
 }
 </style>
