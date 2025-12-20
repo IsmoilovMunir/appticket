@@ -329,8 +329,86 @@
             <p v-if="seatConfigError" class="text-danger small mb-3">{{ seatConfigError }}</p>
                   
                   <div class="mb-4">
-                    <h4 class="h6 mb-3">Категории</h4>
-                  <div v-if="seatCategories.length === 0" class="text-body-secondary small">Категории недоступны.</div>
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                      <h4 class="h6 mb-0">Категории</h4>
+                      <button 
+                        class="btn btn-sm btn-primary" 
+                        @click="showNewCategoryForm = !showNewCategoryForm"
+                        :disabled="seatConfigLoading"
+                      >
+                        <i class="bi bi-plus-lg me-1"></i>
+                        {{ showNewCategoryForm ? 'Отмена' : 'Добавить категорию' }}
+                      </button>
+                    </div>
+                    
+                    <!-- Форма создания новой категории -->
+                    <div v-if="showNewCategoryForm" class="border border-primary rounded-3 p-3 mb-3 bg-light">
+                      <h5 class="h6 mb-3">Новая категория</h5>
+                      <div class="mb-2">
+                        <label class="form-label small">Название категории</label>
+                        <input
+                          type="text"
+                          class="form-control form-control-sm"
+                          v-model="newCategoryForm.name"
+                          placeholder="Например: VIP 15000 ₽"
+                        />
+                      </div>
+                      <div class="mb-2">
+                        <label class="form-label small">Цена (₽)</label>
+                        <input
+                          type="number"
+                          min="0"
+                          class="form-control form-control-sm"
+                          v-model="newCategoryForm.price"
+                          placeholder="0"
+                        />
+                      </div>
+                      <div class="mb-2">
+                        <label class="form-label small">Описание</label>
+                        <textarea
+                          class="form-control form-control-sm"
+                          rows="2"
+                          v-model="newCategoryForm.description"
+                          placeholder="Описание категории (необязательно)"
+                        ></textarea>
+                      </div>
+                      <div class="mb-3">
+                        <label class="form-label small">Цвет категории</label>
+                        <div class="d-flex align-items-center gap-2">
+                          <input
+                            type="color"
+                            class="form-control form-control-color form-control-sm flex-shrink-0 category-color-picker"
+                            v-model="newCategoryForm.color"
+                          />
+                          <input
+                            type="text"
+                            class="form-control form-control-sm text-uppercase"
+                            v-model="newCategoryForm.color"
+                            placeholder="#RRGGBB"
+                          />
+                        </div>
+                      </div>
+                      <div class="d-flex gap-2">
+                        <button 
+                          class="btn btn-sm btn-primary" 
+                          @click="createNewCategory"
+                          :disabled="seatConfigLoading || !newCategoryForm.name || !newCategoryForm.price"
+                        >
+                          <span v-if="seatConfigLoading" class="spinner-border spinner-border-sm me-2"></span>
+                          Создать категорию
+                        </button>
+                        <button 
+                          class="btn btn-sm btn-outline-secondary" 
+                          @click="cancelNewCategory"
+                          :disabled="seatConfigLoading"
+                        >
+                          Отмена
+                        </button>
+                      </div>
+                      <p v-if="newCategoryError" class="text-danger small mt-2 mb-0">{{ newCategoryError }}</p>
+                    </div>
+                    
+                  <div v-if="seatCategories.length === 0 && !showNewCategoryForm" class="text-body-secondary small">Категории недоступны.</div>
                     <div v-for="category in seatCategories" :key="category.id" class="border rounded-3 p-3 mb-3">
                     <div class="d-flex align-items-center gap-2 fw-semibold mb-2">
                       <span
@@ -861,6 +939,7 @@ import {
   cancelTicketsBulk,
   fetchSeatCategories,
   fetchSeatTableAssignments,
+  createSeatCategory,
   updateSeatCategory,
   assignSeatCategory,
   overrideSeatPrice,
@@ -932,6 +1011,14 @@ const seatTables = ref<SeatTableAssignment[]>([]);
 const seatConfigLoading = ref(false);
 const seatConfigError = ref('');
 const categoryForms = ref<Record<number, CategoryFormState>>({});
+const showNewCategoryForm = ref(false);
+const newCategoryForm = ref<CategoryFormState>({
+  name: '',
+  price: '',
+  description: '',
+  color: '#d4af37'
+});
+const newCategoryError = ref('');
 const tableSelections = ref<Record<number, number | null>>({});
 const tableOverrideInputs = ref<Record<number, string>>({});
 const tableSeatSelection = ref<Record<number, string>>({});
@@ -1707,6 +1794,50 @@ const saveCategory = async (categoryId: number) => {
   } catch (error) {
     seatConfigError.value = 'Не удалось обновить категорию';
   }
+};
+
+const createNewCategory = async () => {
+  if (!newCategoryForm.value.name.trim()) {
+    newCategoryError.value = 'Укажите название категории';
+    return;
+  }
+  const priceCents = parsePriceInput(newCategoryForm.value.price);
+  if (priceCents === null || priceCents < 0) {
+    newCategoryError.value = 'Укажите корректную цену (в рублях)';
+    return;
+  }
+  const colorHex = normalizeHexColor(newCategoryForm.value.color);
+  if (!colorHex) {
+    newCategoryError.value = 'Укажите цвет в формате #RRGGBB';
+    return;
+  }
+  newCategoryError.value = '';
+  seatConfigLoading.value = true;
+  try {
+    await createSeatCategory({
+      name: newCategoryForm.value.name.trim(),
+      priceCents,
+      description: newCategoryForm.value.description || null,
+      colorHex
+    });
+    await loadSeatConfig();
+    cancelNewCategory();
+  } catch (error: any) {
+    newCategoryError.value = error.response?.data?.message || 'Не удалось создать категорию';
+  } finally {
+    seatConfigLoading.value = false;
+  }
+};
+
+const cancelNewCategory = () => {
+  showNewCategoryForm.value = false;
+  newCategoryForm.value = {
+    name: '',
+    price: '',
+    description: '',
+    color: '#d4af37'
+  };
+  newCategoryError.value = '';
 };
 
 const assignTables = async (tableNumbers: number[], categoryId: number | null) => {

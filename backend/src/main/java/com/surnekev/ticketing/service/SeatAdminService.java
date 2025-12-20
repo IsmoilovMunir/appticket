@@ -4,6 +4,7 @@ import com.surnekev.ticketing.domain.Concert;
 import com.surnekev.ticketing.domain.Seat;
 import com.surnekev.ticketing.domain.SeatCategory;
 import com.surnekev.ticketing.dto.AssignSeatCategoryRequest;
+import com.surnekev.ticketing.dto.CreateSeatCategoryRequest;
 import com.surnekev.ticketing.dto.SeatCategoryDto;
 import com.surnekev.ticketing.dto.SeatCategoryUpdateRequest;
 import com.surnekev.ticketing.dto.SeatPriceOverrideRequest;
@@ -40,6 +41,26 @@ public class SeatAdminService {
                 .sorted(Comparator.comparing(SeatCategory::getId))
                 .map(this::toDto)
                 .toList();
+    }
+
+    @Transactional
+    public SeatCategoryDto createCategory(CreateSeatCategoryRequest request) {
+        // Проверяем, что категория с таким именем не существует
+        if (seatCategoryRepository.findByNameIgnoreCase(request.name()).isPresent()) {
+            throw new IllegalArgumentException("Category with name '" + request.name() + "' already exists");
+        }
+        SeatCategory category = SeatCategory.builder()
+                .name(request.name())
+                .priceCents(request.priceCents())
+                .description(request.description())
+                .colorHex(request.colorHex() != null ? request.colorHex().toUpperCase() : null)
+                .build();
+        SeatCategory saved = seatCategoryRepository.save(category);
+        seatCategoryRepository.flush();
+        entityManager.detach(saved);
+        SeatCategory created = seatCategoryRepository.findById(saved.getId())
+                .orElseThrow(() -> new IllegalStateException("Category not found after creation"));
+        return toDto(created);
     }
 
     @Transactional

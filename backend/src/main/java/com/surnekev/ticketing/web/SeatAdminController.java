@@ -1,6 +1,7 @@
 package com.surnekev.ticketing.web;
 
 import com.surnekev.ticketing.dto.AssignSeatCategoryRequest;
+import com.surnekev.ticketing.dto.CreateSeatCategoryRequest;
 import com.surnekev.ticketing.dto.SeatCategoryDto;
 import com.surnekev.ticketing.dto.SeatCategoryUpdateRequest;
 import com.surnekev.ticketing.dto.SeatPriceOverrideRequest;
@@ -31,6 +32,11 @@ public class SeatAdminController {
     @GetMapping("/categories")
     public List<SeatCategoryDto> listCategories() {
         return seatAdminService.listCategories();
+    }
+
+    @PostMapping("/categories")
+    public SeatCategoryDto createCategory(@RequestBody @Valid CreateSeatCategoryRequest request) {
+        return seatAdminService.createCategory(request);
     }
 
     @PutMapping("/categories/{id}")

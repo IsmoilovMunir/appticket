@@ -95,6 +95,13 @@ export const fetchSeatCategories = async () => {
   return data;
 };
 
+export const createSeatCategory = async (
+  payload: { name: string; priceCents: number; description?: string | null; colorHex?: string | null }
+) => {
+  const { data } = await api.post<SeatCategorySummary>('/admin/seat-config/categories', payload);
+  return data;
+};
+
 export const updateSeatCategory = async (
   categoryId: number,
   payload: { name: string; priceCents: number; description?: string | null; colorHex?: string | null }
