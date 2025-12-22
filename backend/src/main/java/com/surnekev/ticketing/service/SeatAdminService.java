@@ -38,7 +38,8 @@ public class SeatAdminService {
     @Transactional(readOnly = true)
     public List<SeatCategoryDto> listCategories() {
         return seatCategoryRepository.findAll().stream()
-                .sorted(Comparator.comparing(SeatCategory::getId))
+                .sorted(Comparator.comparingInt(SeatCategory::getPriceCents)
+                        .thenComparing(SeatCategory::getName))
                 .map(this::toDto)
                 .toList();
     }

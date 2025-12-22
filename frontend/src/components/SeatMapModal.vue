@@ -277,8 +277,8 @@ const priceOptions = computed(() => {
     }
   });
   
-  // Сортируем цены по убыванию и создаем опции
-  const sortedPrices = Array.from(uniquePrices).sort((a, b) => b - a);
+  // Сортируем цены по возрастанию и создаем опции
+  const sortedPrices = Array.from(uniquePrices).sort((a, b) => a - b);
   sortedPrices.forEach((priceCents) => {
     options.push({
       label: formatPrice(priceCents),
