@@ -14,7 +14,7 @@
               type="button"
               @click="$emit('cta')"
             >
-              <span class="fw-semibold d-block">Скидки до 29.12.2025</span>
+              <span class="fw-semibold d-block">Акция действует до: 29.12.2025</span>
               <span v-if="!isDiscountExpired" class="small d-block">
                 Осталось:
                 <strong>{{ discountDaysLeft }}</strong> д

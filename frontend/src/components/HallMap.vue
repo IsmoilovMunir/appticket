@@ -12,6 +12,10 @@
     <div class="hall-map-viewport" ref="viewport">
       <div class="hall-map" ref="svgHost" :style="zoomStyle" v-html="svgMarkup"></div>
     </div>
+
+    <div v-if="blockedMessage" class="seat-toast">
+      {{ blockedMessage }}
+    </div>
   </div>
 </template>
 
@@ -40,6 +44,9 @@ const SVG_FALLBACK_HEIGHT = 3569;
 const zoom = ref(1);
 const baseZoom = ref(1);
 let viewportObserver: ResizeObserver | null = null;
+
+const blockedMessage = ref<string | null>(null);
+let blockedTimer: number | null = null;
 
 type SeatMeta = {
   seatId?: number;
@@ -249,6 +256,9 @@ const applySeatColor = (node: SVGElement, seat: Seat) => {
   if (seat.status === 'AVAILABLE') {
     const color = resolveCategoryColor(seat.priceCents, seat.categoryColorHex);
     node.style.fill = color;
+  } else if (seat.status === 'SOLD' || seat.status === 'BLOCKED') {
+    // Купленные или заблокированные места подсвечиваем тем же серым цветом
+    node.style.fill = '#6c757d';
   } else {
     node.style.removeProperty('fill');
   }
@@ -282,13 +292,41 @@ const updateSeatAppearance = () => {
 const updateTableColors = () => {
   if (!seatStore.seats.length) return;
   const seen = new Set<number>();
+
   seatStore.seats.forEach((seat) => {
-    if (seen.has(seat.tableNumber)) return;
-    seen.add(seat.tableNumber);
-    const node = tableElementsByNumber.value.get(seat.tableNumber);
+    const tableNumber = seat.tableNumber;
+    if (!tableNumber || seen.has(tableNumber)) return;
+    seen.add(tableNumber);
+
+    const node = tableElementsByNumber.value.get(tableNumber);
     if (!node) return;
-    const color = resolveCategoryColor(seat.priceCents, seat.categoryColorHex);
+
+    const seatsForTable = seatStore.seats.filter((s) => s.tableNumber === tableNumber);
+    if (!seatsForTable.length) return;
+
+    const totalSeats = seatsForTable.length;
+    const soldOrBlockedCount = seatsForTable.filter(
+      (s) => s.status === 'SOLD' || s.status === 'BLOCKED'
+    ).length;
+    const allSoldOrBlocked = soldOrBlockedCount === totalSeats && totalSeats > 0;
+
+    if (allSoldOrBlocked) {
+      // Если все места за столом куплены/заблокированы — делаем стол полностью "погашенным"
+      node.setAttribute('fill', '#6c757d');
+      node.setAttribute('opacity', '0.6');
+      return;
+    }
+
+    // Частично занятый стол: гасим его пропорционально доле купленных мест
+    const soldFraction = totalSeats > 0 ? soldOrBlockedCount / totalSeats : 0;
+    const availableSeat =
+      seatsForTable.find((s) => s.status === 'AVAILABLE') ?? seatsForTable[0];
+    const color = resolveCategoryColor(availableSeat.priceCents, availableSeat.categoryColorHex);
     node.setAttribute('fill', color);
+
+    // opacity от 1.0 (0% продано) до 0.0 (100% продано, но этот случай уже обработан выше)
+    const opacity = 1 - soldFraction;
+    node.setAttribute('opacity', opacity.toFixed(2));
   });
 };
 
@@ -326,10 +364,42 @@ const handleSeatClick = (event: Event) => {
   const seat = findSeatByMeta(meta);
   if (!seat) {
     if (meta.tableNumber) {
-      // Увеличиваем зум на 20% при клике на стол
+      const seatsForTable = seatStore.seats.filter(
+        (s) => s.tableNumber === meta.tableNumber
+      );
+      const allSoldOrBlocked =
+        seatsForTable.length > 0 &&
+        seatsForTable.every((s) => s.status !== 'AVAILABLE');
+
+      // Если весь стол уже занят — показываем такое же всплывающее сообщение
+      if (allSoldOrBlocked) {
+        blockedMessage.value = 'Этот стол уже полностью занят. Пожалуйста, выберите другой стол.';
+        if (blockedTimer !== null) {
+          clearTimeout(blockedTimer);
+        }
+        blockedTimer = window.setTimeout(() => {
+          blockedMessage.value = null;
+          blockedTimer = null;
+        }, 3000);
+        return;
+      }
+
+      // Иначе просто фокусируем и немного увеличиваем зум
       setZoom(zoom.value * 1.2);
       scrollIntoView(tableElementsByNumber.value.get(meta.tableNumber) ?? target ?? null);
     }
+    return;
+  }
+  // Если место уже занято или недоступно — показываем сообщение и не даём его выбрать
+  if (seat.status !== 'AVAILABLE') {
+    blockedMessage.value = 'Это место уже занято. Пожалуйста, выберите другое место.';
+    if (blockedTimer !== null) {
+      clearTimeout(blockedTimer);
+    }
+    blockedTimer = window.setTimeout(() => {
+      blockedMessage.value = null;
+      blockedTimer = null;
+    }, 3000);
     return;
   }
   // При клике на место (стул) только выбираем, без зума
