@@ -8,6 +8,25 @@
             <span class="title-prefix">{{ titlePrefix }}</span>
             <span class="title-main">{{ titleMain }}</span>
           </h1>
+          <div class="mt-2 mb-2">
+            <button
+              class="discount-badge-hero btn px-3 py-2"
+              type="button"
+              @click="$emit('cta')"
+            >
+              <span class="fw-semibold d-block">Скидки до 29.12.2025</span>
+              <span v-if="!isDiscountExpired" class="small d-block">
+                Осталось:
+                <strong>{{ discountDaysLeft }}</strong> д
+                <strong>{{ discountHoursLeft }}</strong> ч
+                <strong>{{ discountMinutesLeft }}</strong> м
+                <strong>{{ discountSecondsLeft }}</strong> с
+              </span>
+              <span v-else class="small d-block">
+                Акция завершена
+              </span>
+            </button>
+          </div>
           <p class="fs-5 text-light mb-1">
             {{ filteredDescription }}
           </p>
@@ -146,6 +165,54 @@ const filteredDescription = computed(() => {
   return desc.trim();
 });
 
+// Обратный отсчёт скидки до 29.12.2025 23:59:59
+const discountTargetDate = new Date('2025-12-29T23:59:59');
+const discountNow = ref(new Date());
+let discountTimerId: number | null = null;
+
+const updateDiscountTime = () => {
+  discountNow.value = new Date();
+};
+
+const discountDiffMs = computed(
+  () => discountTargetDate.getTime() - discountNow.value.getTime()
+);
+
+const isDiscountExpired = computed(() => discountDiffMs.value <= 0);
+
+const discountDaysLeft = computed(() => {
+  if (isDiscountExpired.value) return 0;
+  return Math.floor(discountDiffMs.value / (1000 * 60 * 60 * 24));
+});
+
+const discountHoursLeft = computed(() => {
+  if (isDiscountExpired.value) return 0;
+  const remaining = discountDiffMs.value % (1000 * 60 * 60 * 24);
+  return Math.floor(remaining / (1000 * 60 * 60));
+});
+
+const discountMinutesLeft = computed(() => {
+  if (isDiscountExpired.value) return 0;
+  const remaining = discountDiffMs.value % (1000 * 60 * 60);
+  return Math.floor(remaining / (1000 * 60));
+});
+
+const discountSecondsLeft = computed(() => {
+  if (isDiscountExpired.value) return 0;
+  const remaining = discountDiffMs.value % (1000 * 60);
+  return Math.floor(remaining / 1000);
+});
+
+onMounted(() => {
+  discountTimerId = window.setInterval(updateDiscountTime, 1000);
+});
+
+onUnmounted(() => {
+  if (discountTimerId !== null) {
+    clearInterval(discountTimerId);
+  }
+});
+
 defineEmits(['cta']);
 </script>
 
@@ -254,6 +321,56 @@ defineEmits(['cta']);
 .parallax-image:hover {
   filter: drop-shadow(0 30px 60px rgba(0, 0, 0, 0.5));
   animation-play-state: paused;
+}
+
+.discount-badge-hero {
+  border-radius: 999px;
+  background: #18723F;
+  color: #fff;
+  font-size: 1rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3), 0 2px 4px rgba(0, 0, 0, 0.2);
+  border: 2px solid #ffffff;
+  text-transform: uppercase;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: left;
+  margin: 0;
+  cursor: pointer;
+  outline: none;
+}
+
+.discount-badge-hero .fw-semibold {
+  font-size: 1.05rem;
+  color: #fff;
+}
+
+.discount-badge-hero .small {
+  font-size: 0.95rem;
+  color: #fff;
+}
+
+.discount-badge-hero strong {
+  color: #fff;
+  font-weight: 700;
+}
+
+@media (max-width: 576px) {
+  .discount-badge-hero {
+    font-size: 0.9rem;
+    padding: 0.5rem 1rem;
+    margin: 0 auto;
+    text-align: center;
+  }
+  
+  .discount-badge-hero .fw-semibold {
+    font-size: 0.95rem;
+  }
+  
+  .discount-badge-hero .small {
+    font-size: 0.85rem;
+  }
 }
 
 /* Мобильные стили для планшетов и меньше */

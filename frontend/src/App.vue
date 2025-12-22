@@ -5,7 +5,8 @@
         <RouterLink class="navbar-brand fw-semibold d-flex align-items-center" to="/">
           <img :src="logoImg" alt="Aurora Concert" class="logo-img" />
         </RouterLink>
-        <nav class="d-flex gap-3">
+
+        <nav class="d-flex gap-3 align-items-center flex-wrap">
           <RouterLink class="nav-link" to="/">Главная</RouterLink>
         </nav>
       </div>
