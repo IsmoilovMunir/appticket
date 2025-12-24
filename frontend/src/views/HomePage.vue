@@ -990,7 +990,7 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue';
 import ConcertHero from '../components/ConcertHero.vue';
 import SeatMapModal from '../components/SeatMapModal.vue';
-import CustomVideoPlayer from '../components/CustomVideoPlayer.vue';
+import CustomVideoPlayer from '@/components/CustomVideoPlayer.vue';
 import { useConcertStore } from '../stores/concertStore';
 import { storeToRefs } from 'pinia';
 import { submitPartnerRequest as apiSubmitPartnerRequest } from '../services/api';
