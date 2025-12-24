@@ -1,14 +1,19 @@
 <template>
-  <section class="pt-0 pb-5 bg-gradient position-relative overflow-hidden text-white hero-section">
+  <section class="pb-5 bg-gradient position-relative overflow-hidden text-white hero-section">
     <div class="container">
       <div class="row align-items-center g-4">
         <div class="col-lg-7">
-          <p class="text-uppercase small text-light mb-0">Эксклюзивное событие</p>
-          <h1 class="display-4 fw-bold mb-1">
-            <span class="title-prefix">{{ titlePrefix }}</span>
-            <span class="title-main">{{ titleMain }}</span>
+          <h1 class="display-3 fw-bold mb-3 hero-title">
+            Новогодний банкет-вечер с Сафармухаммадом в Москве
           </h1>
-          <div class="mt-2 mb-2">
+          <p class="fs-4 text-light mb-4 hero-subtitle">
+            3 часа живой родной музыки, сытный банкет и атмосфера, ради которой приходят со своими
+          </p>
+          <div class="hero-utp mb-4">
+            <span class="utp-badge">Еда, напитки, шоу и концерт — всё включено</span>
+          </div>
+          
+          <div class="mt-3 mb-4">
             <button
               class="discount-badge-hero btn px-3 py-2"
               type="button"
@@ -27,28 +32,39 @@
               </span>
             </button>
           </div>
-          <p class="fs-5 text-light mb-1">
-            {{ filteredDescription }}
-          </p>
-          <div class="d-flex gap-4 flex-wrap my-0 text-light">
-            <div>
-              <div class="text-uppercase small text-opacity-75">Дата</div>
-              <div class="h4 mb-0">{{ date }}</div>
+          
+          <div class="hero-facts mb-4">
+            <div class="fact-item">
+              <i class="bi bi-calendar3"></i>
+              <span>3 января 2026</span>
             </div>
-            <div>
-              <div class="text-uppercase small text-opacity-75">Локация</div>
-              <div class="h4 mb-0 mt-3">{{ venue }}</div>
+            <div class="fact-item">
+              <i class="bi bi-clock"></i>
+              <span>Начало в 19:00</span>
+            </div>
+            <div class="fact-item">
+              <i class="bi bi-geo-alt"></i>
+              <span>Банкетный зал Асаки, Москва</span>
+            </div>
+            <div class="fact-item">
+              <i class="bi bi-people"></i>
+              <span>Вход 16+</span>
             </div>
           </div>
-          <div class="d-flex gap-3 flex-wrap mt-3 mb-3 buttons-container">
-            <button class="btn btn-light btn-lg px-4 buy-button" @click="$emit('cta')">Купить билет</button>
-            <a href="https://t.me/surnekevents" class="btn btn-outline-light btn-lg px-4">
+
+          <div class="hero-price mb-4">
+            <span class="price-label">Билеты от</span>
+            <span class="price-value">5 000 ₽</span>
+          </div>
+
+          <div class="d-flex gap-3 flex-wrap mt-4 mb-3 buttons-container">
+            <button class="btn btn-light btn-lg px-5 py-3 buy-button-hero" @click="$emit('cta')">
+              👉 Купить билет сейчас
+            </button>
+            <a href="https://t.me/surnek_events" class="btn btn-outline-light btn-lg px-4">
               Подробнее
             </a>
           </div>
-          <p class="mt-3 text-light mb-0">
-            Выберите лучший стол, подтвердите бронь с менеджером и получите QR‑билеты.
-          </p>
         </div>
         <div class="col-lg-5">
           <div class="glass-card text-center parallax-container">
@@ -229,6 +245,7 @@ defineEmits(['cta']);
 .hero-section {
   background: #18723F;
   margin-top: -4rem;
+  padding-top: 6rem;
   overflow: visible;
 }
 
@@ -242,22 +259,88 @@ defineEmits(['cta']);
   z-index: 10;
 }
 
-.title-prefix {
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-  font-weight: 700;
-  font-style: normal;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+.hero-title {
+  font-size: 2.5rem;
+  line-height: 1.2;
+  font-weight: 800;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
 }
 
-.title-main {
-  font-family: 'Honkenia', serif;
-  font-weight: normal;
-  display: block;
-  margin: 0;
-  margin-bottom: -0.1em;
-  font-size: 3.8em;
-  line-height: 1;
+.hero-subtitle {
+  font-size: 1.35rem;
+  line-height: 1.5;
+  opacity: 0.95;
+}
+
+.hero-utp {
+  display: flex;
+  align-items: center;
+}
+
+.utp-badge {
+  display: inline-block;
+  padding: 0.75rem 1.5rem;
+  background: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(10px);
+  border-radius: 50px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  font-weight: 600;
+  font-size: 1.1rem;
+  letter-spacing: 0.3px;
+}
+
+.hero-facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+  margin-top: 1.5rem;
+}
+
+.fact-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 1.1rem;
+  font-weight: 500;
+}
+
+.fact-item i {
+  font-size: 1.3rem;
+  opacity: 0.9;
+}
+
+.hero-price {
+  display: flex;
+  align-items: baseline;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.price-label {
+  font-size: 1.2rem;
+  opacity: 0.9;
+}
+
+.price-value {
+  font-size: 2.5rem;
+  font-weight: 800;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.buy-button-hero {
+  font-size: 1.2rem;
+  font-weight: 700;
+  padding: 1rem 2.5rem;
+  border-radius: 50px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+  transition: all 0.3s ease;
+}
+
+.buy-button-hero:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4);
 }
 
 .glass-card {
@@ -381,13 +464,12 @@ defineEmits(['cta']);
     padding-bottom: 3rem !important;
   }
 
-  section.hero-section .title-main.title-main {
-    font-size: 3.5em !important;
-    line-height: 1 !important;
+  .hero-title {
+    font-size: 2rem;
   }
 
-  section.hero-section .title-prefix.title-prefix {
-    font-size: 0.9em !important;
+  .hero-subtitle {
+    font-size: 1.15rem;
   }
 
   section.hero-section .glass-card.glass-card img {
@@ -396,6 +478,18 @@ defineEmits(['cta']);
   
   .parallax-image {
     filter: drop-shadow(0 10px 20px rgba(0, 0, 0, 0.2));
+  }
+
+  .hero-facts {
+    gap: 1rem;
+  }
+
+  .fact-item {
+    font-size: 1rem;
+  }
+
+  .price-value {
+    font-size: 2rem;
   }
 }
 
@@ -408,25 +502,27 @@ defineEmits(['cta']);
     overflow: visible !important;
   }
 
-  section.hero-section .title-main.title-main {
-    font-size: 3.5em !important;
-    line-height: 1 !important;
+  .hero-title {
+    font-size: 1.75rem !important;
   }
 
-  section.hero-section .title-prefix.title-prefix {
-    font-size: 0.9em !important;
+  .hero-subtitle {
+    font-size: 1.05rem !important;
+  }
+
+  .utp-badge {
+    font-size: 0.95rem;
+    padding: 0.6rem 1.2rem;
   }
 
   section.hero-section .glass-card.glass-card img {
     max-width: 100% !important;
   }
 
-  section.hero-section .btn.btn {
-    font-size: 0.9rem !important;
-    padding: 0.5rem 1.5rem !important;
-    display: block !important;
-    visibility: visible !important;
-    opacity: 1 !important;
+  .buy-button-hero {
+    font-size: 1rem !important;
+    padding: 0.875rem 2rem !important;
+    width: 100%;
   }
 
   section.hero-section .buttons-container {
@@ -435,14 +531,23 @@ defineEmits(['cta']);
     opacity: 1 !important;
     margin-top: 1rem !important;
     margin-bottom: 1rem !important;
+    width: 100%;
   }
 
-  section.hero-section .h4.h4 {
-    font-size: 1.1rem !important;
+  .hero-facts {
+    gap: 0.75rem;
   }
 
-  section.hero-section h1.display-4.display-4 {
-    font-size: 2rem !important;
+  .fact-item {
+    font-size: 0.9rem;
+  }
+
+  .fact-item i {
+    font-size: 1.1rem;
+  }
+
+  .price-value {
+    font-size: 1.75rem !important;
   }
 }
 
@@ -455,19 +560,24 @@ defineEmits(['cta']);
     overflow: visible !important;
   }
 
-  section.hero-section .title-main.title-main {
-    font-size: 3em !important;
-    line-height: 1 !important;
-    margin-bottom: -0.1em !important;
+  .hero-title {
+    font-size: 1.5rem !important;
+    line-height: 1.3 !important;
   }
 
-  section.hero-section .title-prefix.title-prefix {
-    font-size: 0.85em !important;
+  .hero-subtitle {
+    font-size: 1rem !important;
+    line-height: 1.4 !important;
   }
 
-  section.hero-section .btn.btn {
+  .utp-badge {
     font-size: 0.85rem !important;
-    padding: 0.6rem 1.5rem !important;
+    padding: 0.5rem 1rem !important;
+  }
+
+  .buy-button-hero {
+    font-size: 0.95rem !important;
+    padding: 0.875rem 1.75rem !important;
     width: 100% !important;
     margin-bottom: 0.5rem !important;
     display: block !important;
@@ -488,16 +598,25 @@ defineEmits(['cta']);
     gap: 0.5rem !important;
   }
 
-  section.hero-section .h4.h4 {
+  .hero-facts {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .fact-item {
+    font-size: 0.9rem !important;
+  }
+
+  .fact-item i {
     font-size: 1rem !important;
   }
 
-  section.hero-section .fs-5.fs-5 {
-    font-size: 0.95rem !important;
+  .price-value {
+    font-size: 1.75rem !important;
   }
 
-  section.hero-section h1.display-4.display-4 {
-    font-size: 1.5rem !important;
+  .price-label {
+    font-size: 1rem !important;
   }
 
   section.hero-section .glass-card.glass-card img {
@@ -514,12 +633,17 @@ defineEmits(['cta']);
     overflow: visible !important;
   }
 
-  section.hero-section .title-main.title-main {
-    font-size: 5.6em !important;
+  .hero-title {
+    font-size: 1.35rem !important;
   }
 
-  section.hero-section .title-prefix.title-prefix {
-    font-size: 0.8em !important;
+  .hero-subtitle {
+    font-size: 0.95rem !important;
+  }
+
+  .utp-badge {
+    font-size: 0.8rem !important;
+    padding: 0.45rem 0.9rem !important;
   }
 
   section.hero-section .buttons-container {
@@ -531,11 +655,17 @@ defineEmits(['cta']);
     margin-bottom: 1rem !important;
   }
 
-  section.hero-section .btn.btn {
+  .buy-button-hero {
     display: block !important;
     visibility: visible !important;
     opacity: 1 !important;
     width: 100% !important;
+    font-size: 0.9rem !important;
+    padding: 0.75rem 1.5rem !important;
+  }
+
+  .price-value {
+    font-size: 1.5rem !important;
   }
 }
 </style>

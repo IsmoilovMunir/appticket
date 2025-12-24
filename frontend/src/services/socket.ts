@@ -7,12 +7,38 @@ export type SeatEventHandlers = {
 };
 
 export const connectSeatChannel = (concertId: number, handlers: SeatEventHandlers) => {
-  const wsUrl =
-    import.meta.env.VITE_WS_URL || `${window.location.protocol === 'https:' ? 'wss' : 'ws'}://${window.location.host}/ws-seat-status`;
+  // В режиме разработки используем текущий хост (Vite прокси обработает запрос)
+  // В продакшене используем полный URL или переменную окружения
+  let wsUrl: string;
+  
+  if (import.meta.env.VITE_WS_URL) {
+    wsUrl = import.meta.env.VITE_WS_URL;
+  } else {
+    // Используем текущий хост - Vite прокси в dev режиме или прямой доступ в prod
+    const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
+    wsUrl = `${protocol}://${window.location.host}/ws-seat-status`;
+  }
+  
+  console.log('[WebSocket] Подключение к:', wsUrl);
+  
   const client = new Client({
     brokerURL: undefined,
-    webSocketFactory: () => new WebSocket(wsUrl),
-    reconnectDelay: 5000
+    webSocketFactory: () => {
+      const ws = new WebSocket(wsUrl);
+      ws.onerror = (error) => {
+        console.error('[WebSocket] Ошибка подключения:', error);
+        console.error('[WebSocket] URL:', wsUrl);
+        console.error('[WebSocket] Убедитесь, что бэкенд запущен на порту 8080');
+      };
+      ws.onopen = () => {
+        console.log('[WebSocket] Соединение установлено');
+      };
+      return ws;
+    },
+    reconnectDelay: 5000,
+    onStompError: (frame) => {
+      console.error('[STOMP] Ошибка:', frame);
+    }
   });
 
   client.onConnect = () => {
