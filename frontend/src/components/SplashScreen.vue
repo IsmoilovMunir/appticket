@@ -8,7 +8,7 @@
   >
     <div class="splash-card" role="document">
       <button 
-        class="splash-close" 
+        class="splash-close splash-close-mobile" 
         aria-label="Закрыть афишу"
         @click="close"
       >
@@ -131,6 +131,9 @@ const emit = defineEmits<{
 const isVisible = ref(false);
 const posterImage = postImage;
 
+// Таймер для автоматического закрытия через 7 секунд
+let autoCloseTimerId: number | null = null;
+
 // Обратный отсчёт скидки до 29.12.2025 23:59:59
 const discountTargetDate = new Date('2025-12-29T23:59:59');
 const discountNow = ref(new Date());
@@ -184,6 +187,11 @@ watch(isVisible, (newValue) => {
 }, { immediate: false });
 
 const close = () => {
+  // Очищаем таймер автоматического закрытия, если он активен
+  if (autoCloseTimerId !== null) {
+    clearTimeout(autoCloseTimerId);
+    autoCloseTimerId = null;
+  }
   isVisible.value = false;
   emit('close');
 };
@@ -206,12 +214,22 @@ onMounted(() => {
   // Показываем splash при каждой загрузке страницы с небольшой задержкой для плавности
   setTimeout(() => {
     isVisible.value = true;
+    
+    // Запускаем таймер автоматического закрытия через 7 секунд
+    autoCloseTimerId = window.setTimeout(() => {
+      if (isVisible.value) {
+        close();
+      }
+    }, 7000);
   }, 300);
 });
 
 onUnmounted(() => {
   if (discountTimerId !== null) {
     clearInterval(discountTimerId);
+  }
+  if (autoCloseTimerId !== null) {
+    clearTimeout(autoCloseTimerId);
   }
 });
 </script>
@@ -383,23 +401,24 @@ onUnmounted(() => {
   flex-shrink: 0;
   display: block;
   background: transparent;
-  max-height: 35vh;
-  margin: 0;
+  max-height: 25vh;
   padding: 0;
-  padding-top: 20px;
+  padding-top: 15px;
+  margin: 0 auto;
 }
 
 .splash-poster {
-  width: 100%;
+  width: 90%;
   height: auto;
-  max-height: 35vh;
+  max-height: 25vh;
   display: block;
   object-fit: contain;
   object-position: center;
+  margin: 0 auto;
 }
 
 .splash-promo {
-  padding: 12px 0;
+  padding: 8px 0;
   text-align: center;
   flex-shrink: 0;
   display: flex;
@@ -411,10 +430,10 @@ onUnmounted(() => {
 }
 
 .discount-badge-hero {
-  border-radius: 16px;
+  border-radius: 12px;
   background: linear-gradient(135deg, #18723F 0%, #1f9d6c 100%);
   color: #fff;
-  font-size: 1.15rem;
+  font-size: 0.75rem;
   box-shadow: 0 4px 16px rgba(24, 114, 63, 0.4), 0 2px 8px rgba(0, 0, 0, 0.15);
   border: 2px solid rgba(255, 255, 255, 0.3);
   text-transform: none;
@@ -422,10 +441,10 @@ onUnmounted(() => {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 20px 28px;
+  padding: 10px 16px;
   margin: 0;
   cursor: default;
-  gap: 10px;
+  gap: 4px;
   width: calc(100% - 40px);
   max-width: 100%;
   transition: all 0.3s ease;
@@ -437,35 +456,35 @@ onUnmounted(() => {
 }
 
 .discount-badge-hero .fw-semibold {
-  font-size: 1.35rem;
+  font-size: 0.85rem;
   color: #fff;
-  line-height: 1.4;
+  line-height: 1.3;
   font-weight: 600;
-  letter-spacing: 0.3px;
+  letter-spacing: 0.2px;
 }
 
 .discount-badge-hero .discount-date {
-  font-size: 1.65rem;
+  font-size: 1rem;
   font-weight: 800;
   color: #fff;
   background: rgba(255, 255, 255, 0.25);
-  padding: 4px 12px;
-  border-radius: 8px;
+  padding: 2px 6px;
+  border-radius: 6px;
   display: inline-block;
-  margin-left: 6px;
+  margin-left: 4px;
   text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
   border: 2px solid rgba(255, 255, 255, 0.4);
-  letter-spacing: 0.5px;
+  letter-spacing: 0.3px;
 }
 
 .discount-badge-hero .small {
-  font-size: 1.15rem;
+  font-size: 0.75rem;
   color: rgba(255, 255, 255, 0.95);
-  line-height: 1.5;
+  line-height: 1.4;
   font-weight: 500;
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
   flex-wrap: wrap;
   justify-content: center;
 }
@@ -473,11 +492,11 @@ onUnmounted(() => {
 .discount-badge-hero strong {
   color: #fff;
   font-weight: 700;
-  font-size: 1.25rem;
+  font-size: 0.85rem;
   background: rgba(255, 255, 255, 0.25);
-  padding: 4px 10px;
-  border-radius: 6px;
-  margin: 0 3px;
+  padding: 2px 5px;
+  border-radius: 5px;
+  margin: 0 2px;
   border: 1px solid rgba(255, 255, 255, 0.3);
 }
 
@@ -607,130 +626,167 @@ onUnmounted(() => {
 /* Мобильная адаптация */
 @media (max-width: 576px) {
   .splash-overlay {
-    padding: 10px;
+    padding: 5px;
   }
 
   .splash-card {
     max-width: 100%;
     border-radius: 16px;
-    max-height: 98vh;
-    min-height: 90vh;
+    max-height: 100vh;
+    min-height: auto;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .splash-close {
+    position: absolute !important;
+    top: 8px !important;
+    right: 8px !important;
+    width: 28px;
+    height: 28px;
+    font-size: 16px;
+    margin: 0;
+    order: 1;
   }
 
   .splash-partners {
-    padding: 8px 0;
+    padding: 4px 0 8px;
+    order: 2;
   }
 
   .splash-partners-track {
-    gap: 20px;
+    gap: 16px;
   }
 
   .splash-partners-logo {
-    height: 24px;
-    max-width: 90px;
+    height: 20px;
+    max-width: 75px;
   }
 
   .splash-partners-logo-asaki {
-    height: 28px;
+    height: 24px;
+  }
+
+  .splash-partners-age {
+    font-size: 12px;
+    padding: 2px 6px;
   }
 
   .splash-media {
+    width: 100%;
     border-radius: 16px 16px 0 0;
-    max-height: 30vh;
-    padding-top: 15px;
+    max-height: 25vh;
+    padding-top: 8px;
+    order: 3;
+    margin: 0 auto;
   }
 
   .splash-poster {
-    max-height: 30vh;
+    width: 90%;
+    max-height: 25vh;
+    object-fit: contain;
+    margin: 0 auto;
   }
 
   .splash-promo {
-    padding: 12px 0;
+    padding: 6px 0;
+    order: 4;
   }
 
   .discount-badge-hero {
-    font-size: 1rem;
-    padding: 16px 20px;
-    width: calc(100% - 32px);
-    gap: 8px;
+    font-size: 0.7rem;
+    padding: 8px 12px;
+    width: calc(100% - 24px);
+    gap: 4px;
+    border-radius: 10px;
   }
 
   .discount-badge-hero .fw-semibold {
-    font-size: 1.15rem;
+    font-size: 0.8rem;
+    line-height: 1.2;
   }
 
   .discount-badge-hero .discount-date {
-    font-size: 1.35rem;
-    padding: 3px 10px;
-    margin-left: 4px;
+    font-size: 0.95rem;
+    padding: 1px 5px;
+    margin-left: 3px;
   }
 
   .discount-badge-hero .small {
-    font-size: 1rem;
+    font-size: 0.7rem;
+    line-height: 1.3;
+    gap: 3px;
   }
 
   .discount-badge-hero strong {
-    font-size: 1.1rem;
-    padding: 3px 8px;
+    font-size: 0.8rem;
+    padding: 1px 4px;
+    margin: 0 2px;
   }
 
   .splash-body {
-    padding: 14px 16px 16px;
-    gap: 8px;
+    padding: 10px 12px 12px;
+    gap: 6px;
+    order: 5;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
   }
 
   .splash-title {
-    font-size: 20px !important;
+    font-size: 18px !important;
+    line-height: 1.3;
+    margin-bottom: 4px;
   }
 
   .splash-desc {
-    font-size: 15px !important;
+    font-size: 13px !important;
+    margin-bottom: 4px;
   }
 
   .splash-included {
-    font-size: 14px !important;
-    padding: 6px 10px;
+    font-size: 12px !important;
+    padding: 5px 8px;
+    margin-bottom: 4px;
   }
 
   .splash-meta {
-    gap: 5px;
+    gap: 4px;
+    margin-bottom: 4px;
   }
 
   .date-pill,
   .time-pill,
   .age-pill,
   .location-pill {
-    font-size: 13px !important;
-    padding: 6px 10px;
+    font-size: 11px !important;
+    padding: 4px 8px;
   }
 
   .location-pill i {
-    font-size: 14px !important;
+    font-size: 12px !important;
   }
 
   .splash-price {
-    padding: 10px 14px;
+    padding: 8px 12px;
+    margin-bottom: 8px;
+    margin-top: auto;
   }
 
   .price-label {
-    font-size: 14px !important;
+    font-size: 12px !important;
   }
 
   .price-value {
-    font-size: 26px !important;
+    font-size: 22px !important;
   }
 
   .btn-buy {
-    padding: 12px 20px;
-    font-size: 16px !important;
-  }
-
-  .splash-close {
-    top: 10px;
-    right: 10px;
-    width: 28px;
-    height: 28px;
-    font-size: 16px;
+    padding: 10px 18px;
+    font-size: 15px !important;
+    margin-top: 0;
+    order: 6;
   }
 }
 

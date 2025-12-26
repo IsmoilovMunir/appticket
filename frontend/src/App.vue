@@ -51,11 +51,23 @@ import SplashScreen from '@/components/SplashScreen.vue';
   position: sticky;
   top: 0;
   z-index: 10;
+  padding: 0.5rem 0;
+  min-height: auto;
+}
+
+.app-navbar .container {
+  padding-top: 0.25rem;
+  padding-bottom: 0.25rem;
 }
 
 .logo-img {
-  height: 50px;
+  height: 35px;
   width: auto;
+}
+
+.nav-link {
+  font-size: 0.9rem;
+  padding: 0.25rem 0.5rem;
 }
 
 .footer-creator-link {
