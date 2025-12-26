@@ -821,6 +821,9 @@
           <div class="partners-carousel-item">
             <img :src="smartxLogo" alt="SmartX" class="partners-carousel-logo" />
           </div>
+          <div class="partners-carousel-item">
+            <img :src="jxnLogo" alt="JXN" class="partners-carousel-logo" />
+          </div>
           <!-- Duplicate for seamless loop -->
           <div class="partners-carousel-item">
             <img :src="chidSvgLogo" alt="CHID" class="partners-carousel-logo" />
@@ -833,6 +836,9 @@
           </div>
           <div class="partners-carousel-item">
             <img :src="smartxLogo" alt="SmartX" class="partners-carousel-logo" />
+          </div>
+          <div class="partners-carousel-item">
+            <img :src="jxnLogo" alt="JXN" class="partners-carousel-logo" />
           </div>
         </div>
       </div>
@@ -1005,6 +1011,7 @@ import chidLogo from '../assets/chid.svg';
 import asakiLogo from '../assets/asaki.svg';
 import drnematboevLogo from '../assets/drnematboev.svg';
 import smartxLogo from '../assets/smartx.svg';
+import jxnLogo from '../assets/jxnlogo.svg';
 import chidSvgLogo from '../assets/chid.svg';
 import safarImage from '@/assets/safarr.png';
 import rizoImage from '../assets/rizo.png';
@@ -1193,6 +1200,23 @@ onUnmounted(() => {
   }
   // Удаляем обработчик прокрутки
   window.removeEventListener('scroll', handleScroll);
+  // Удаляем обработчик события открытия модального окна
+  const ticketModalHandler = (window as any).__handleOpenTicketModal;
+  if (ticketModalHandler) {
+    window.removeEventListener('openTicketModal', ticketModalHandler);
+    delete (window as any).__handleOpenTicketModal;
+  }
+  // Удаляем обработчики событий для меню
+  const hideMenuHandler = (window as any).__handleHideNavigationMenu;
+  if (hideMenuHandler) {
+    window.removeEventListener('hideNavigationMenu', hideMenuHandler);
+    delete (window as any).__handleHideNavigationMenu;
+  }
+  const showMenuHandler = (window as any).__handleShowNavigationMenu;
+  if (showMenuHandler) {
+    window.removeEventListener('showNavigationMenu', showMenuHandler);
+    delete (window as any).__handleShowNavigationMenu;
+  }
 });
 
 const playMusicPreview = () => {
@@ -1317,6 +1341,30 @@ const closeModal = () => {
   modalOpen.value = false;
   showNavigationMenu.value = true;
 };
+
+// Обработчики событий для управления меню из SplashScreen
+// Добавляем их сразу после определения функций, чтобы они были готовы до onMounted
+const handleOpenTicketModal = () => {
+  openModal();
+};
+
+const handleHideNavigationMenu = () => {
+  showNavigationMenu.value = false;
+};
+
+const handleShowNavigationMenu = () => {
+  showNavigationMenu.value = true;
+};
+
+// Регистрируем обработчики событий
+window.addEventListener('openTicketModal', handleOpenTicketModal);
+window.addEventListener('hideNavigationMenu', handleHideNavigationMenu);
+window.addEventListener('showNavigationMenu', handleShowNavigationMenu);
+
+// Сохраняем обработчики для удаления в onUnmounted
+(window as any).__handleOpenTicketModal = handleOpenTicketModal;
+(window as any).__handleHideNavigationMenu = handleHideNavigationMenu;
+(window as any).__handleShowNavigationMenu = handleShowNavigationMenu;
 
 const formattedDate = computed(() => {
   if (!concert.value) return '';
@@ -1630,6 +1678,10 @@ const originalEventPartners = [
     name: 'Партнёр 2',
     logo: smartxLogo,
     telegramUrl: 'https://t.me/SmartXB71'
+  },
+  { 
+    name: 'JXN',
+    logo: jxnLogo
   },
   { 
     name: 'Ваше место здесь',
@@ -2310,6 +2362,10 @@ onUnmounted(() => {
   object-fit: contain;
   display: block;
   transition: transform 0.3s ease;
+}
+
+.partner-logo-event .partner-logo-img {
+  filter: brightness(0);
 }
 
 .partner-logo-wrapper:hover .partner-logo-img {
@@ -9480,7 +9536,7 @@ onUnmounted(() => {
   bottom: 0 !important;
   left: 50% !important;
   transform: translateX(-50%) !important;
-  z-index: 10000 !important;
+  z-index: 10001 !important;
   display: flex !important;
   justify-content: center;
   align-items: center;

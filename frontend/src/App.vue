@@ -1,5 +1,6 @@
 <template>
   <div class="app-shell">
+    <SplashScreen />
     <header class="app-navbar navbar navbar-expand-lg bg-body">
       <div class="container">
         <RouterLink class="navbar-brand fw-semibold d-flex align-items-center" to="/">
@@ -36,6 +37,7 @@
 <script setup lang="ts">
 import { RouterLink, RouterView } from 'vue-router';
 import logoImg from '@/assets/log.svg';
+import SplashScreen from '@/components/SplashScreen.vue';
 </script>
 
 <style scoped>
