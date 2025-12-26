@@ -1038,7 +1038,7 @@ const activeSection = ref<string>('');
 // Меню навигации для секций
 const navigationMenu = ref([
   { id: 'hero', label: 'Главное', icon: 'bi bi-house-fill' },
-  { id: 'artist', label: 'Атисты', icon: 'bi bi-music-player-fill' },
+  { id: 'artist', label: 'Артисты', icon: 'bi bi-music-player-fill' },
   { id: 'tickets', label: 'Билеты', icon: 'bi bi-ticket-perforated-fill' },
   { id: 'partners', label: 'Партнеры', icon: 'bi bi-people-fill' },
   { id: 'contacts', label: 'Контакты', icon: 'bi bi-telephone-fill' }
