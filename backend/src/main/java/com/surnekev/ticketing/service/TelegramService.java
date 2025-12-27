@@ -66,7 +66,8 @@ public class TelegramService {
 
         Map<String, Object> payload = new HashMap<>();
         payload.put("chat_id", managerChatId);
-        payload.put("text", buildReservationText("Статус обновлён: " + reservation.getStatus(), reservation));
+        String statusText = translateStatus(reservation.getStatus());
+        payload.put("text", buildReservationText("Статус обновлён: " + statusText, reservation));
         payload.put("parse_mode", "HTML");
 
         sendRequest("sendMessage", payload, reservation.getId(), TelegramLog.Direction.OUTBOUND);
@@ -165,6 +166,20 @@ public class TelegramService {
         String seats = reservation.getSeats().stream()
                 .map(seat -> "Стол " + seat.getTableNumber() + ", место " + seat.getChairNumber())
                 .collect(Collectors.joining("\n"));
+        
+        // Рассчитываем итоговую цену
+        int totalPriceCents = reservation.getSeats().stream()
+                .mapToInt(seat -> {
+                    if (seat.getPriceOverrideCents() != null) {
+                        return seat.getPriceOverrideCents();
+                    } else {
+                        return seat.getCategory() != null ? seat.getCategory().getPriceCents() : 0;
+                    }
+                })
+                .sum();
+        
+        String totalPriceFormatted = formatPrice(totalPriceCents);
+        
         return """
                 <b>%s</b>
                 ID: %s
@@ -173,12 +188,14 @@ public class TelegramService {
                 Места:
                 %s
 
+                Итоговая цена: <b>%s</b>
                 Истекает: %s
                 """.formatted(prefix,
                 reservation.getId(),
                 defaultString(reservation.getBuyerName(), "—"),
                 defaultString(reservation.getBuyerPhone(), "—"),
                 seats,
+                totalPriceFormatted,
                 reservation.getExpiresAt());
     }
 
@@ -329,6 +346,22 @@ public class TelegramService {
 
     private String defaultString(String value, String fallback) {
         return StringUtils.hasText(value) ? value : fallback;
+    }
+
+    private String translateStatus(com.surnekev.ticketing.domain.ReservationStatus status) {
+        return switch (status) {
+            case HELD -> "Забронировано";
+            case PARTIALLY_CONFIRMED -> "Частично подтверждено";
+            case PARTIALLY_CANCELLED -> "Частично отменено";
+            case CONFIRMED -> "Подтверждено";
+            case CANCELLED -> "Отменено";
+            case EXPIRED -> "Истекло";
+        };
+    }
+
+    private String formatPrice(int priceCents) {
+        double priceRubles = priceCents / 100.0;
+        return String.format("%.2f ₽", priceRubles);
     }
 
     @Data
