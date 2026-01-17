@@ -3,7 +3,9 @@ package com.surnekev.ticketing.service;
 import com.surnekev.ticketing.domain.Concert;
 import com.surnekev.ticketing.domain.Seat;
 import com.surnekev.ticketing.domain.SeatCategory;
+import com.surnekev.ticketing.domain.SeatStatus;
 import com.surnekev.ticketing.dto.AssignSeatCategoryRequest;
+import com.surnekev.ticketing.dto.BulkCreateSeatsRequest;
 import com.surnekev.ticketing.dto.CreateSeatCategoryRequest;
 import com.surnekev.ticketing.dto.SeatCategoryDto;
 import com.surnekev.ticketing.dto.SeatCategoryUpdateRequest;
@@ -119,11 +121,20 @@ public class SeatAdminService {
 
     @Transactional
     public void applyPriceOverride(SeatPriceOverrideRequest request) {
-        Long concertId = resolveConcertId(request.concertId());
         if (request.priceCents() != null && request.priceCents() < 0) {
             throw new IllegalArgumentException("Price must be greater or equal to zero");
         }
+
         List<Seat> seats;
+        if (request.seatId() != null) {
+            // Переопределение цены для конкретного места
+            Seat seat = seatRepository.findById(request.seatId())
+                    .orElseThrow(() -> new IllegalArgumentException("Seat not found"));
+            seat.setPriceOverrideCents(request.priceCents());
+            seats = List.of(seat);
+        } else {
+            // Переопределение цены для стола/места
+            Long concertId = resolveConcertId(request.concertId());
         if (request.chairNumber() != null) {
             Seat seat = seatRepository.findByConcertIdAndTableNumberAndChairNumber(
                     concertId, request.tableNumber(), request.chairNumber())
@@ -136,7 +147,40 @@ public class SeatAdminService {
             throw new IllegalArgumentException("No seats found for provided table");
         }
         seats.forEach(seat -> seat.setPriceOverrideCents(request.priceCents()));
+        }
         seatRepository.saveAll(seats);
+    }
+
+    @Transactional
+    public int bulkCreateSeats(BulkCreateSeatsRequest request) {
+        Concert concert = concertRepository.findById(request.concertId())
+                .orElseThrow(() -> new IllegalArgumentException("Concert not found"));
+        SeatCategory category = seatCategoryRepository.findById(request.categoryId())
+                .orElseThrow(() -> new IllegalArgumentException("Seat category not found"));
+
+        // Удаляем существующие места для этого концерта, если они есть
+        List<Seat> existingSeats = seatRepository.findAllByConcertId(request.concertId());
+        if (!existingSeats.isEmpty()) {
+            seatRepository.deleteAll(existingSeats);
+            seatRepository.flush();
+        }
+
+        List<Seat> newSeats = new ArrayList<>();
+        for (BulkCreateSeatsRequest.TableSeatsConfig tableConfig : request.tables()) {
+            for (int chair = 1; chair <= tableConfig.chairsCount(); chair++) {
+                Seat seat = Seat.builder()
+                        .concert(concert)
+                        .tableNumber(tableConfig.tableNumber())
+                        .chairNumber(chair)
+                        .category(category)
+                        .status(SeatStatus.AVAILABLE)
+                        .build();
+                newSeats.add(seat);
+            }
+        }
+
+        seatRepository.saveAll(newSeats);
+        return newSeats.size();
     }
 
     private SeatTableAssignmentDto buildAssignment(int tableNumber, List<Seat> seats) {
@@ -181,6 +225,40 @@ public class SeatAdminService {
                 category.getDescription(),
                 category.getColorHex()
         );
+    }
+
+    @Transactional
+    public void blockSeat(Long seatId) {
+        Seat seat = seatRepository.findById(seatId)
+                .orElseThrow(() -> new IllegalArgumentException("Seat not found"));
+        if (seat.getStatus() == SeatStatus.SOLD) {
+            throw new IllegalStateException("Cannot block a sold seat");
+        }
+        seat.setStatus(SeatStatus.BLOCKED);
+        seat.setBlockedReason("Blocked by admin");
+        seatRepository.save(seat);
+    }
+
+    @Transactional
+    public void unblockSeat(Long seatId) {
+        Seat seat = seatRepository.findById(seatId)
+                .orElseThrow(() -> new IllegalArgumentException("Seat not found"));
+        if (seat.getStatus() != SeatStatus.BLOCKED) {
+            throw new IllegalStateException("Seat is not blocked");
+        }
+        seat.setStatus(SeatStatus.AVAILABLE);
+        seat.setBlockedReason(null);
+        seatRepository.save(seat);
+    }
+
+    @Transactional
+    public void deleteSeat(Long seatId) {
+        Seat seat = seatRepository.findById(seatId)
+                .orElseThrow(() -> new IllegalArgumentException("Seat not found"));
+        if (seat.getStatus() == SeatStatus.SOLD) {
+            throw new IllegalStateException("Cannot delete a sold seat");
+        }
+        seatRepository.delete(seat);
     }
 
     private Long resolveConcertId(Long concertId) {

@@ -439,6 +439,28 @@ table {
   fill: var(--seat-available);
 }
 
+/* Танцпол всегда должен быть оранжевым (#E46904) для всех статусов */
+.hall-map [data-seat-id].dance-floor.seat-available {
+  fill: #E46904 !important;
+}
+
+.hall-map [data-seat-id].dance-floor.seat-held {
+  fill: #E46904 !important;
+}
+
+.hall-map [data-seat-id].dance-floor.seat-sold {
+  fill: #6c757d !important;
+}
+
+.hall-map [data-seat-id].dance-floor.seat-blocked {
+  fill: #6c757d !important;
+}
+
+/* Общее правило для танцпола (если нет класса статуса) */
+.hall-map [data-seat-id].dance-floor {
+  fill: #E46904 !important;
+}
+
 .hall-map [data-seat-id].seat-held {
   fill: var(--seat-held);
 }

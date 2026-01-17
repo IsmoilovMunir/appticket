@@ -5,8 +5,10 @@ import com.surnekev.ticketing.domain.Seat;
 import com.surnekev.ticketing.domain.SeatCategory;
 import com.surnekev.ticketing.domain.SeatStatus;
 import com.surnekev.ticketing.dto.ConcertDto;
+import com.surnekev.ticketing.dto.CreateConcertRequest;
 import com.surnekev.ticketing.dto.SeatCategoryDto;
 import com.surnekev.ticketing.dto.SeatDto;
+import com.surnekev.ticketing.dto.UpdateConcertRequest;
 import com.surnekev.ticketing.mapper.SeatMapper;
 import com.surnekev.ticketing.repository.ConcertRepository;
 import com.surnekev.ticketing.repository.SeatRepository;
@@ -33,7 +35,89 @@ public class ConcertService {
     public ConcertDto getConcert(Long id) {
         Concert concert = concertRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Concert not found"));
-        
+        return toDto(concert);
+    }
+
+    @Transactional(readOnly = true)
+    public ConcertDto getConcertBySlug(String slug) {
+        Concert concert = concertRepository.findBySlug(slug)
+                .orElseThrow(() -> new IllegalArgumentException("Concert not found"));
+        return toDto(concert);
+    }
+
+    @Transactional(readOnly = true)
+    public List<ConcertDto> getAllConcerts() {
+        return concertRepository.findAll().stream()
+                .map(this::toDto)
+                .collect(Collectors.toList());
+    }
+
+    @Transactional
+    public ConcertDto createConcert(CreateConcertRequest request) {
+        // Проверяем уникальность slug
+        if (concertRepository.findBySlug(request.slug()).isPresent()) {
+            throw new IllegalArgumentException("Concert with slug '" + request.slug() + "' already exists");
+        }
+
+        Concert concert = Concert.builder()
+                .title(request.title())
+                .slug(request.slug())
+                .description(request.description())
+                .concertDate(request.concertDate())
+                .eventStartTime(request.eventStartTime())
+                .guestStartTime(request.guestStartTime())
+                .venue(request.venue())
+                .city(request.city())
+                .currency(request.currency())
+                .ageRestriction(request.ageRestriction())
+                .eventType(request.eventType())
+                .posterUrl(request.posterUrl())
+                .salesSchemeUrl(request.salesSchemeUrl())
+                .createdAt(Instant.now())
+                .build();
+
+        concert = concertRepository.save(concert);
+        return toDto(concert);
+    }
+
+    @Transactional
+    public ConcertDto updateConcert(Long id, UpdateConcertRequest request) {
+        Concert concert = concertRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Concert not found"));
+
+        // Проверяем уникальность slug если он изменяется
+        if (request.slug() != null && !request.slug().equals(concert.getSlug())) {
+            if (concertRepository.findBySlug(request.slug()).isPresent()) {
+                throw new IllegalArgumentException("Concert with slug '" + request.slug() + "' already exists");
+            }
+            concert.setSlug(request.slug());
+        }
+
+        if (request.title() != null) concert.setTitle(request.title());
+        if (request.description() != null) concert.setDescription(request.description());
+        if (request.concertDate() != null) concert.setConcertDate(request.concertDate());
+        if (request.eventStartTime() != null) concert.setEventStartTime(request.eventStartTime());
+        if (request.guestStartTime() != null) concert.setGuestStartTime(request.guestStartTime());
+        if (request.venue() != null) concert.setVenue(request.venue());
+        if (request.city() != null) concert.setCity(request.city());
+        if (request.currency() != null) concert.setCurrency(request.currency());
+        if (request.ageRestriction() != null) concert.setAgeRestriction(request.ageRestriction());
+        if (request.eventType() != null) concert.setEventType(request.eventType());
+        if (request.posterUrl() != null) concert.setPosterUrl(request.posterUrl());
+        if (request.salesSchemeUrl() != null) concert.setSalesSchemeUrl(request.salesSchemeUrl());
+
+        concert = concertRepository.save(concert);
+        return toDto(concert);
+    }
+
+    @Transactional
+    public void deleteConcert(Long id) {
+        Concert concert = concertRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Concert not found"));
+        concertRepository.delete(concert);
+    }
+
+    private ConcertDto toDto(Concert concert) {
         // Вычисляем минимальную цену билетов из всех мест с категориями
         List<Seat> seats = seatRepository.findAllByConcertId(concert.getId());
         Integer minPriceCents = seats.stream()
@@ -46,14 +130,22 @@ public class ConcertService {
                 })
                 .min(Integer::compareTo)
                 .orElse(null); // null если нет мест с категориями
-        
+
         return new ConcertDto(
                 concert.getId(),
                 concert.getTitle(),
+                concert.getSlug(),
                 concert.getDescription(),
                 concert.getConcertDate(),
+                concert.getEventStartTime(),
+                concert.getGuestStartTime(),
                 concert.getVenue(),
+                concert.getCity(),
+                concert.getCurrency(),
+                concert.getAgeRestriction(),
+                concert.getEventType(),
                 concert.getPosterUrl(),
+                concert.getSalesSchemeUrl(),
                 minPriceCents
         );
     }

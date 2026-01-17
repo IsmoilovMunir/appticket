@@ -1,13 +1,16 @@
 import axios from 'axios';
 import type {
   Concert,
+  CreateConcertRequest,
+  UpdateConcertRequest,
   Seat,
   ReservationResponse,
   Ticket,
   TicketStatus,
   SeatCategorySummary,
   SeatTableAssignment,
-  AdminUser
+  AdminUser,
+  BulkCreateSeatsRequest
 } from '../types';
 
 const api = axios.create({
@@ -25,6 +28,11 @@ api.interceptors.request.use((config) => {
 
 export const fetchConcert = async (concertId: number) => {
   const { data } = await api.get<Concert>(`/concerts/${concertId}`);
+  return data;
+};
+
+export const fetchConcertBySlug = async (slug: string) => {
+  const { data } = await api.get<Concert>(`/concerts/slug/${slug}`);
   return data;
 };
 
@@ -126,12 +134,30 @@ export const assignSeatCategory = async (payload: { seatCategoryId: number; tabl
 };
 
 export const overrideSeatPrice = async (payload: {
-  tableNumber: number;
+  tableNumber?: number;
   chairNumber?: number | null;
   priceCents?: number | null;
   concertId?: number;
+  seatId?: number;
 }) => {
   await api.post('/admin/seat-config/tables/override-price', payload);
+};
+
+export const bulkCreateSeats = async (payload: BulkCreateSeatsRequest) => {
+  const { data } = await api.post<{ created: number; message: string }>('/admin/seat-config/seats/bulk-create', payload);
+  return data;
+};
+
+export const blockSeat = async (seatId: number) => {
+  await api.post(`/admin/seat-config/seats/${seatId}/block`);
+};
+
+export const unblockSeat = async (seatId: number) => {
+  await api.post(`/admin/seat-config/seats/${seatId}/unblock`);
+};
+
+export const deleteSeat = async (seatId: number) => {
+  await api.delete(`/admin/seat-config/seats/${seatId}`);
 };
 
 export interface ChangePasswordRequest {
@@ -267,6 +293,48 @@ export const updatePromoCode = async (id: number, request: UpdatePromoCodeReques
 
 export const deletePromoCode = async (id: number) => {
   await api.delete(`/promo-codes/admin/${id}`);
+};
+
+// Admin Concert API
+export const fetchAllConcerts = async () => {
+  const { data } = await api.get<Concert[]>('/admin/concerts');
+  return data;
+};
+
+export const createConcert = async (request: CreateConcertRequest) => {
+  const { data } = await api.post<Concert>('/admin/concerts', request);
+  return data;
+};
+
+export const updateConcert = async (id: number, request: UpdateConcertRequest) => {
+  const { data } = await api.put<Concert>(`/admin/concerts/${id}`, request);
+  return data;
+};
+
+export const deleteConcert = async (id: number) => {
+  await api.delete(`/admin/concerts/${id}`);
+};
+
+export const uploadPoster = async (file: File) => {
+  const formData = new FormData();
+  formData.append('file', file);
+  const { data } = await api.post<{ url: string }>('/admin/concerts/upload/poster', formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data'
+    }
+  });
+  return data.url;
+};
+
+export const uploadScheme = async (file: File) => {
+  const formData = new FormData();
+  formData.append('file', file);
+  const { data } = await api.post<{ url: string }>('/admin/concerts/upload/scheme', formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data'
+    }
+  });
+  return data.url;
 };
 
 export const apiClient = api;

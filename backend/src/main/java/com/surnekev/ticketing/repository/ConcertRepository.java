@@ -8,5 +8,7 @@ import java.util.Optional;
 public interface ConcertRepository extends JpaRepository<Concert, Long> {
 
     Optional<Concert> findFirstByOrderByConcertDateAsc();
+    
+    Optional<Concert> findBySlug(String slug);
 }
 

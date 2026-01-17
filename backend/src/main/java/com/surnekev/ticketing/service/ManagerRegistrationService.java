@@ -5,6 +5,7 @@ import com.surnekev.ticketing.domain.AdminUser;
 import com.surnekev.ticketing.repository.AdminUserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.ValueOperations;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -16,9 +17,10 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 @Service
+@ConditionalOnProperty(name = "spring.data.redis.enabled", havingValue = "true", matchIfMissing = true)
 @RequiredArgsConstructor
 @Slf4j
-public class ManagerRegistrationService {
+public class ManagerRegistrationService implements ManagerRegistrationServiceInterface {
 
     private final AdminUserRepository adminUserRepository;
     private final PasswordEncoder passwordEncoder;
@@ -96,6 +98,12 @@ public class ManagerRegistrationService {
         redisTemplate.delete(key);
         
         log.info("New manager registered: {}", username);
+    }
+
+    @Override
+    public void cleanupExpiredCodes() {
+        // Redis автоматически удаляет истекшие ключи, дополнительная очистка не требуется
+        log.debug("Redis automatically cleans up expired registration codes");
     }
 
     private String generateVerificationCode() {

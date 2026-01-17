@@ -3,6 +3,8 @@ import HomePage from '../views/HomePage.vue';
 import AdminDashboard from '../views/AdminDashboard.vue';
 import CheckinDashboard from '../views/CheckinDashboard.vue';
 import AdminLayout from '../layouts/AdminLayout.vue';
+import ConcertPage from '../views/ConcertPage.vue';
+import ConcertsManagement from '../views/ConcertsManagement.vue';
 
 const router = createRouter({
   history: createWebHistory(),
@@ -21,6 +23,11 @@ const router = createRouter({
           path: '',
           name: 'admin',
           component: AdminDashboard
+        },
+        {
+          path: 'concerts',
+          name: 'admin-concerts',
+          component: ConcertsManagement
         }
       ]
     },
@@ -35,6 +42,13 @@ const router = createRouter({
           component: CheckinDashboard
         }
       ]
+    },
+    // Важно: этот маршрут должен быть последним, чтобы не перехватывать другие маршруты
+    {
+      path: '/:slug',
+      name: 'concert',
+      component: ConcertPage,
+      props: true
     }
   ]
 });
@@ -60,4 +74,3 @@ router.beforeEach((to, from, next) => {
 });
 
 export default router;
-

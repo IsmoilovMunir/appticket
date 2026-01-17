@@ -37,7 +37,29 @@
             
           <div class="row g-3">
               <div class="col-md-6 col-lg-12" v-for="section in dashboardSections" :key="section.key">
+                <RouterLink v-if="section.link" :to="section.link" class="text-decoration-none">
+                  <div 
+                    class="dashboard-card card h-100 border-0 shadow-sm"
+                  >
+                    <div class="card-body p-4">
+                      <div class="d-flex align-items-center mb-3">
+                        <div class="section-icon me-3" :class="section.iconClass">
+                          <i :class="section.icon"></i>
+                        </div>
+                        <div class="flex-grow-1">
+                          <h3 class="h6 mb-1">{{ section.title }}</h3>
+                          <p class="text-body-secondary small mb-0">{{ section.description }}</p>
+                        </div>
+                      </div>
+                      <div class="d-flex align-items-center justify-content-between">
+                        <span class="badge bg-secondary">{{ getSectionCount(section.key) }}</span>
+                        <i class="bi bi-chevron-right"></i>
+                      </div>
+                    </div>
+                  </div>
+                </RouterLink>
                 <div 
+                  v-else
                   class="dashboard-card card h-100 border-0 shadow-sm"
                   :class="{ 'active': activeSection === section.key }"
                   @click="openSection(section.key)"
@@ -330,7 +352,7 @@
                   
                   <div class="mb-4">
                     <div class="d-flex justify-content-between align-items-center mb-3">
-                      <h4 class="h6 mb-0">Категории</h4>
+                      <h4 class="h6 mb-0">Категории мест</h4>
                       <button 
                         class="btn btn-sm btn-primary" 
                         @click="showNewCategoryForm = !showNewCategoryForm"
@@ -408,7 +430,10 @@
                       <p v-if="newCategoryError" class="text-danger small mt-2 mb-0">{{ newCategoryError }}</p>
                     </div>
                     
-                  <div v-if="seatCategories.length === 0 && !showNewCategoryForm" class="text-body-secondary small">Категории недоступны.</div>
+                  <div v-if="seatCategories.length === 0 && !showNewCategoryForm" class="alert alert-info small mb-3">
+                    <i class="bi bi-info-circle me-2"></i>
+                    Категории мест еще не созданы. Нажмите кнопку "Добавить категорию" выше, чтобы создать первую категорию.
+                  </div>
                     <div v-for="category in seatCategories" :key="category.id" class="border rounded-3 p-3 mb-3">
                     <div class="d-flex align-items-center gap-2 fw-semibold mb-2">
                       <span
@@ -457,12 +482,52 @@
                     <table class="table table-sm align-middle">
                       <thead class="text-body-secondary small">
                         <tr>
-                          <th>Стол</th>
+                          <th>Стол/Зона</th>
                           <th>Категория</th>
+                          <th>Цена</th>
                             <th>Действие</th>
                         </tr>
                       </thead>
                       <tbody>
+                        <!-- Танцпол -->
+                        <tr v-if="danceFloorAssignment" class="table-info">
+                          <td>
+                            <div class="fw-semibold small">
+                              <i class="bi bi-music-note me-1"></i>
+                              Танцпол
+                            </div>
+                            <div class="text-body-secondary small">tableNumber: 0</div>
+                          </td>
+                          <td>
+                            <select class="form-select form-select-sm" v-model="danceFloorCategoryId">
+                              <option :value="null">Без категории</option>
+                              <option v-for="category in seatCategories" :key="category.id" :value="category.id">
+                                {{ getCategoryDisplayName(category) }}
+                              </option>
+                            </select>
+                          </td>
+                          <td>
+                            <input
+                              type="number"
+                              min="0"
+                              step="100"
+                              class="form-control form-control-sm"
+                              v-model="danceFloorPriceOverride"
+                              placeholder="Цена в копейках"
+                            />
+                          </td>
+                          <td>
+                            <button
+                              class="btn btn-sm btn-outline-primary"
+                              :disabled="seatConfigLoading"
+                              @click="applyDanceFloorSettings"
+                            >
+                              Применить
+                            </button>
+                          </td>
+                        </tr>
+
+                        <!-- Столы -->
                           <tr v-for="assignment in seatTables" :key="assignment.tableNumber">
                           <td>
                               <div class="fw-semibold small">Стол {{ assignment.tableNumber }}</div>
@@ -476,10 +541,20 @@
                             </select>
                           </td>
                           <td>
+                            <input
+                              type="number"
+                              min="0"
+                              step="100"
+                              class="form-control form-control-sm"
+                              v-model="tableOverrideInputs[assignment.tableNumber]"
+                              placeholder="Переопределить цену"
+                            />
+                          </td>
+                          <td>
                             <button
                               class="btn btn-sm btn-outline-primary"
                               :disabled="seatConfigLoading"
-                              @click="applyTableCategory(assignment.tableNumber)"
+                              @click="applyTableSettings(assignment.tableNumber)"
                             >
                               Применить
                             </button>
@@ -488,7 +563,160 @@
                         </tbody>
                       </table>
                     </div>
-                    <p class="text-body-secondary small">Всего столов: {{ seatTables.length }}</p>
+                    <p class="text-body-secondary small">
+                      Всего столов: {{ seatTables.length }}
+                      <span v-if="danceFloorAssignment">• Танцпол: 1 зона</span>
+                    </p>
+                  </div>
+
+                  <!-- Управление местами танцпола -->
+                  <div v-if="danceFloorAssignment" class="mb-4">
+                    <h4 class="h6 mb-3">
+                      Места танцпола
+                      <button
+                        class="btn btn-sm btn-outline-info ms-2"
+                        @click="loadDanceFloorSeats"
+                        :disabled="danceFloorSeatsLoading"
+                      >
+                        <span v-if="danceFloorSeatsLoading" class="spinner-border spinner-border-sm me-1"></span>
+                        <i class="bi bi-arrow-clockwise me-1"></i>
+                        Обновить
+                      </button>
+                    </h4>
+
+                    <div v-if="danceFloorSeatsError" class="alert alert-danger small mb-3">
+                      {{ danceFloorSeatsError }}
+                    </div>
+
+                    <div v-if="danceFloorSeats.length > 0" class="table-responsive">
+                      <table class="table table-sm">
+                        <thead class="text-body-secondary small">
+                          <tr>
+                            <th>ID</th>
+                            <th>Место</th>
+                            <th>Статус</th>
+                            <th>Цена</th>
+                            <th>Действия</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          <tr v-for="seat in danceFloorSeats" :key="seat.id">
+                            <td class="small">{{ seat.id }}</td>
+                            <td class="small">Танцпол {{ seat.chairNumber }}</td>
+                            <td>
+                              <span class="badge"
+                                    :class="{
+                                      'bg-success': seat.status === 'AVAILABLE',
+                                      'bg-warning': seat.status === 'HELD',
+                                      'bg-danger': seat.status === 'SOLD',
+                                      'bg-secondary': seat.status === 'BLOCKED'
+                                    }">
+                                {{ seat.status === 'AVAILABLE' ? 'Свободно' :
+                                   seat.status === 'HELD' ? 'Забронировано' :
+                                   seat.status === 'SOLD' ? 'Продано' : 'Заблокировано' }}
+                              </span>
+                            </td>
+                            <td>
+                              <input
+                                type="number"
+                                min="0"
+                                step="100"
+                                class="form-control form-control-sm"
+                                v-model="danceFloorSeatPrices[seat.id]"
+                                :placeholder="formatRub(seat.priceCents)"
+                                style="width: 120px;"
+                              />
+                            </td>
+                            <td>
+                              <div class="btn-group btn-group-sm">
+                                <button
+                                  v-if="seat.status === 'AVAILABLE'"
+                                  class="btn btn-outline-danger btn-sm"
+                                  @click="blockDanceFloorSeat(seat.id)"
+                                  title="Заблокировать место"
+                                >
+                                  <i class="bi bi-lock"></i>
+                                </button>
+                                <button
+                                  v-if="seat.status === 'BLOCKED'"
+                                  class="btn btn-outline-success btn-sm"
+                                  @click="unblockDanceFloorSeat(seat.id)"
+                                  title="Разблокировать место"
+                                >
+                                  <i class="bi bi-unlock"></i>
+                                </button>
+                                <button
+                                  class="btn btn-outline-primary btn-sm"
+                                  @click="updateDanceFloorSeatPrice(seat.id)"
+                                  :disabled="!danceFloorSeatPrices[seat.id]"
+                                  title="Обновить цену"
+                                >
+                                  <i class="bi bi-currency-ruble"></i>
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+
+                    <div v-else-if="!danceFloorSeatsLoading" class="text-center py-3 text-body-secondary small">
+                      <i class="bi bi-music-note-beamed" style="font-size: 2rem;"></i>
+                      <p class="mt-2 mb-0">Места танцпола не найдены</p>
+                    </div>
+                  </div>
+
+                  <!-- Танцпол -->
+                  <div class="mb-4">
+                    <h4 class="h6 mb-3">Танцпол</h4>
+                    <div class="card border-warning">
+                      <div class="card-body">
+                        <p class="text-body-secondary small mb-3">
+                          Укажите ID кружка танцпола из SVG схемы и количество билетов для него.
+                          Например, для кружка с <code>data-seat-id="7"</code> укажите ID: 7
+                        </p>
+                        <div class="mb-3">
+                          <label class="form-label small">ID кружка танцпола (data-seat-id)</label>
+                          <input
+                            type="number"
+                            min="1"
+                            class="form-control form-control-sm"
+                            v-model.number="danceFloorSeatId"
+                            placeholder="7"
+                          />
+                        </div>
+                        <div class="mb-3">
+                          <label class="form-label small">Категория</label>
+                          <select class="form-select form-select-sm" v-model="danceFloorCategoryId">
+                            <option :value="null">Выберите категорию</option>
+                            <option v-for="category in seatCategories" :key="category.id" :value="category.id">
+                              {{ getCategoryDisplayName(category) }} • {{ formatRub(category.priceCents) }}
+                            </option>
+                          </select>
+                        </div>
+                        <div class="mb-3">
+                          <label class="form-label small">Количество билетов</label>
+                          <input
+                            type="number"
+                            min="1"
+                            class="form-control form-control-sm"
+                            v-model.number="danceFloorCapacity"
+                            placeholder="250"
+                          />
+                          <small class="text-body-secondary">Сколько билетов будет создано для этого кружка</small>
+                        </div>
+                        <button
+                          class="btn btn-sm btn-warning w-100"
+                          :disabled="seatConfigLoading || !danceFloorSeatId || !danceFloorCategoryId || !danceFloorCapacity"
+                          @click="createDanceFloorSeats"
+                        >
+                          <span v-if="seatConfigLoading" class="spinner-border spinner-border-sm me-2"></span>
+                          Создать места для танцпола
+                        </button>
+                        <p v-if="danceFloorError" class="text-danger small mt-2 mb-0">{{ danceFloorError }}</p>
+                        <p v-if="danceFloorSuccess" class="text-success small mt-2 mb-0">{{ danceFloorSuccess }}</p>
+                      </div>
+                    </div>
                   </div>
                 </div>
 
@@ -705,6 +933,222 @@
                               </button>
                             </div>
                             <p v-if="promoCodeSaveError" class="text-danger small mt-2 mb-0">{{ promoCodeSaveError }}</p>
+                          </form>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div v-if="activeSection === 'concerts'">
+                  <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h4 class="h5 mb-0">
+                      <i class="bi bi-music-note-beamed me-2"></i>
+                      Управление концертами
+                    </h4>
+                    <button class="btn btn-outline-primary btn-sm" :disabled="concertsLoading" @click="loadConcerts">
+                      <span v-if="concertsLoading" class="spinner-border spinner-border-sm me-2"></span>
+                      Обновить
+                    </button>
+                  </div>
+                  <p v-if="concertsError" class="text-danger small mb-3">{{ concertsError }}</p>
+                  
+                  <div class="mb-4">
+                    <button class="btn btn-primary" @click="showCreateConcert = true">
+                      <i class="bi bi-plus-lg me-2"></i>
+                      Создать новый концерт
+                    </button>
+                  </div>
+
+                  <div v-if="concerts.length === 0" class="text-body-secondary small mb-3">
+                    Концерты не найдены
+                  </div>
+                  <div v-else class="list-group">
+                    <div
+                      v-for="concert in concerts"
+                      :key="concert.id"
+                      class="list-group-item border rounded-3 p-3 mb-2"
+                    >
+                      <div class="d-flex justify-content-between align-items-start mb-2">
+                        <div class="flex-grow-1">
+                          <div class="fw-semibold small mb-1">{{ concert.title }}</div>
+                          <div class="text-body-secondary small mb-1">
+                            <div v-if="concert.city">Город: {{ concert.city }}</div>
+                            <div v-if="concert.venue">Место: {{ concert.venue }}</div>
+                            <div v-if="concert.concertDate">
+                              Дата: {{ formatDate(concert.concertDate) }}
+                            </div>
+                            <div v-if="concert.slug">URL: /{{ concert.slug }}</div>
+                          </div>
+                        </div>
+                        <div class="d-flex gap-2">
+                          <button class="btn btn-outline-primary btn-sm" @click="editConcert(concert)">
+                            <i class="bi bi-pencil"></i>
+                          </button>
+                          <button class="btn btn-outline-danger btn-sm" @click="deleteConcertHandler(concert.id)">
+                            <i class="bi bi-trash"></i>
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Модальное окно создания/редактирования -->
+                  <div v-if="showCreateConcert || editingConcert" class="modal fade show d-block" style="background: rgba(0,0,0,0.5);" @click.self="closeConcertModal">
+                    <div class="modal-dialog modal-lg" @click.stop>
+                      <div class="modal-content">
+                        <div class="modal-header">
+                          <h5 class="modal-title">{{ editingConcert ? 'Редактировать концерт' : 'Создать концерт' }}</h5>
+                          <button type="button" class="btn-close" @click="closeConcertModal"></button>
+                        </div>
+                        <div class="modal-body" style="max-height: 70vh; overflow-y: auto;">
+                          <form @submit.prevent="saveConcert">
+                            <div class="row g-3">
+                              <div class="col-12">
+                                <label class="form-label small">Название концерта *</label>
+                                <input
+                                  type="text"
+                                  v-model="concertForm.title"
+                                  @input="handleTitleChange"
+                                  class="form-control form-control-sm"
+                                  required
+                                />
+                              </div>
+                              <div class="col-12">
+                                <label class="form-label small">Slug (URL) *</label>
+                                <input
+                                  type="text"
+                                  v-model="concertForm.slug"
+                                  class="form-control form-control-sm"
+                                  required
+                                  pattern="[a-z0-9-]+"
+                                  placeholder="name-concert"
+                                />
+                                <small class="text-body-secondary">Только латинские буквы, цифры и дефисы</small>
+                              </div>
+                              <div class="col-12">
+                                <label class="form-label small">Описание</label>
+                                <textarea
+                                  v-model="concertForm.description"
+                                  class="form-control form-control-sm"
+                                  rows="3"
+                                ></textarea>
+                              </div>
+                              <div class="col-md-6">
+                                <label class="form-label small">Дата и время концерта *</label>
+                                <input
+                                  type="datetime-local"
+                                  v-model="concertForm.concertDate"
+                                  class="form-control form-control-sm"
+                                  required
+                                />
+                              </div>
+                              <div class="col-md-6">
+                                <label class="form-label small">Дата и время начала события</label>
+                                <input
+                                  type="datetime-local"
+                                  v-model="concertForm.eventStartTime"
+                                  class="form-control form-control-sm"
+                                />
+                              </div>
+                              <div class="col-md-6">
+                                <label class="form-label small">Дата и время начала запуска гостей</label>
+                                <input
+                                  type="datetime-local"
+                                  v-model="concertForm.guestStartTime"
+                                  class="form-control form-control-sm"
+                                />
+                              </div>
+                              <div class="col-md-6">
+                                <label class="form-label small">Место проведения</label>
+                                <input
+                                  type="text"
+                                  v-model="concertForm.venue"
+                                  class="form-control form-control-sm"
+                                />
+                              </div>
+                              <div class="col-md-6">
+                                <label class="form-label small">Город мероприятия</label>
+                                <input
+                                  type="text"
+                                  v-model="concertForm.city"
+                                  class="form-control form-control-sm"
+                                />
+                              </div>
+                              <div class="col-md-6">
+                                <label class="form-label small">Валюта</label>
+                                <select v-model="concertForm.currency" class="form-select form-select-sm">
+                                  <option value="RUB">RUB</option>
+                                  <option value="USD">USD</option>
+                                  <option value="EUR">EUR</option>
+                                </select>
+                              </div>
+                              <div class="col-md-6">
+                                <label class="form-label small">Возрастное ограничение</label>
+                                <input
+                                  type="text"
+                                  v-model="concertForm.ageRestriction"
+                                  class="form-control form-control-sm"
+                                  placeholder="18+"
+                                />
+                              </div>
+                              <div class="col-md-6">
+                                <label class="form-label small">Тип мероприятия</label>
+                                <input
+                                  type="text"
+                                  v-model="concertForm.eventType"
+                                  class="form-control form-control-sm"
+                                  placeholder="Концерт"
+                                />
+                              </div>
+                              <div class="col-12">
+                                <label class="form-label small">Афиша</label>
+                                <div v-if="concertForm.posterUrl" class="mb-2">
+                                  <img :src="concertForm.posterUrl" alt="Poster" style="max-width: 200px; max-height: 200px;" class="img-thumbnail" />
+                                </div>
+                                <input
+                                  type="file"
+                                  accept="image/*"
+                                  @change="handlePosterUpload"
+                                  class="form-control form-control-sm"
+                                  :disabled="posterUploading"
+                                />
+                                <small v-if="posterUploading" class="text-body-secondary">Загрузка...</small>
+                              </div>
+                              <div class="col-12">
+                                <label class="form-label small">Схема продаж (SVG)</label>
+                                <div v-if="concertForm.salesSchemeUrl" class="mb-2">
+                                  <a :href="concertForm.salesSchemeUrl" target="_blank" class="btn btn-sm btn-outline-primary">
+                                    <i class="bi bi-eye me-1"></i>
+                                    Просмотреть схему
+                                  </a>
+                                </div>
+                                <input
+                                  type="file"
+                                  accept=".svg,image/svg+xml"
+                                  @change="handleSchemeUpload"
+                                  class="form-control form-control-sm"
+                                  :disabled="schemeUploading"
+                                />
+                                <small v-if="schemeUploading" class="text-body-secondary">Загрузка...</small>
+                                <small class="text-body-secondary d-block">Только SVG файлы</small>
+                              </div>
+                            </div>
+                            <div class="mt-3">
+                              <button type="submit" class="btn btn-primary btn-sm" :disabled="concertSaving">
+                                <span v-if="concertSaving" class="spinner-border spinner-border-sm me-2"></span>
+                                Сохранить
+                              </button>
+                              <button type="button" class="btn btn-outline-secondary btn-sm" @click="closeConcertModal">
+                                Отмена
+                              </button>
+                            </div>
+                            <p v-if="concertSaveSuccess" class="text-success small mt-2 mb-0">
+                              <i class="bi bi-check-circle me-1"></i>{{ concertSaveSuccess }}
+                            </p>
+                            <p v-if="concertSaveError" class="text-danger small mt-2 mb-0">
+                              <i class="bi bi-exclamation-circle me-1"></i>{{ concertSaveError }}
+                            </p>
                           </form>
                         </div>
                       </div>
@@ -929,7 +1373,9 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue';
+import { RouterLink, useRoute } from 'vue-router';
 import { useAdminStore } from '../stores/adminStore';
+import { useSeatStore } from '../stores/seatStore';
 import {
   apiClient,
   fetchTickets,
@@ -955,13 +1401,25 @@ import {
   createPromoCode,
   updatePromoCode,
   deletePromoCode,
+  fetchAllConcerts,
+  fetchConcertBySlug,
+  createConcert,
+  updateConcert,
+  deleteConcert,
+  uploadPoster,
+  uploadScheme,
+  bulkCreateSeats,
+  blockSeat,
+  unblockSeat,
+  fetchSeats,
   type PromoCodeDto,
   type CreatePromoCodeRequest,
   type UpdatePromoCodeRequest
 } from '../services/api';
-import type { Ticket, SeatCategorySummary, SeatTableAssignment, AdminUser } from '../types';
+import type { Ticket, Seat, SeatCategorySummary, SeatTableAssignment, AdminUser, Concert, CreateConcertRequest, UpdateConcertRequest } from '../types';
 
 const adminStore = useAdminStore();
+const route = useRoute();
 
 const username = ref('');
 const password = ref('');
@@ -1028,6 +1486,19 @@ const templateSelections = ref<Record<string, number | null>>({
   cat2: null
 });
 
+// Танцпол
+const danceFloorSeatId = ref<number | null>(null);
+const danceFloorCategoryId = ref<number | null>(null);
+const danceFloorCapacity = ref<number | null>(null);
+const danceFloorError = ref('');
+const danceFloorSuccess = ref('');
+const danceFloorAssignment = ref<SeatTableAssignment | null>(null);
+const danceFloorPriceOverride = ref('');
+const danceFloorSeats = ref<Seat[]>([]);
+const danceFloorSeatsLoading = ref(false);
+const danceFloorSeatsError = ref('');
+const danceFloorSeatPrices = ref<Record<number, string>>({});
+
 // Промокоды
 const promoCodes = ref<PromoCodeDto[]>([]);
 const promoCodesLoading = ref(false);
@@ -1053,7 +1524,14 @@ const ticketSections = [
 ] as const;
 
 const dashboardSections = computed(() => {
-  const sections = [
+  const sections: Array<{
+    key: string;
+    title: string;
+    description: string;
+    icon: string;
+    iconClass: string;
+    link?: string;
+  }> = [
     {
       key: 'tickets',
       title: 'Билеты',
@@ -1095,6 +1573,14 @@ const dashboardSections = computed(() => {
       description: 'Создание и управление промокодами',
       icon: 'bi bi-tag',
       iconClass: 'text-success'
+    },
+    {
+      key: 'concerts-link',
+      title: 'Концерты',
+      description: 'Создание и управление концертами',
+      icon: 'bi bi-music-note-beamed',
+      iconClass: 'text-purple',
+      link: '/admin/concerts'
     }
   ];
   
@@ -1133,7 +1619,7 @@ const checkAdminAccess = async () => {
 
 const ticketsByStatus = computed(() =>
   ticketSections.reduce<Record<string, Ticket[]>>((acc, section) => {
-    acc[section.key] = tickets.value.filter((ticket) => ticket.status === section.key);
+    acc[section.key] = Array.isArray(tickets.value) ? tickets.value.filter((ticket) => ticket.status === section.key) : [];
     return acc;
   }, {})
 );
@@ -1164,15 +1650,18 @@ const revertLoading = ref<Record<string, boolean>>({});
 const getSectionCount = (key: string) => {
   switch (key) {
     case 'tickets':
-      return tickets.value.length;
+      return Array.isArray(tickets.value) ? tickets.value.length : 0;
     case 'refunds':
-      return tickets.value.filter(t => t.status === 'SOLD').length;
+      return Array.isArray(tickets.value) ? tickets.value.filter(t => t.status === 'SOLD').length : 0;
     case 'reservations':
       return 0; // Можно добавить счетчик резервов
     case 'seat-config':
       return seatCategories.value.length;
     case 'users':
       return users.value.length;
+    case 'concerts':
+    case 'concerts-link':
+      return concerts.value.length;
     default:
       return 0;
   }
@@ -1189,10 +1678,12 @@ const getSectionDescription = (key: string) => {
 };
 
 const openSection = (key: string) => {
+  console.log('Opening section:', key);
   activeSection.value = key;
   if (key === 'tickets') {
     refreshTickets();
   } else if (key === 'seat-config') {
+    console.log('Loading seat config...');
     loadSeatConfig();
   } else if (key === 'users') {
     loadUsers();
@@ -1203,6 +1694,8 @@ const openSection = (key: string) => {
     clearRefundSearch();
   } else if (key === 'used-tickets') {
     loadUsedTickets();
+  } else if (key === 'concerts') {
+    loadConcerts();
   }
 };
 
@@ -1511,9 +2004,12 @@ const refreshTickets = async () => {
   ticketsLoading.value = true;
   ticketError.value = '';
   try {
-    tickets.value = await fetchTickets();
+    const ticketsData = await fetchTickets();
+    // Убеждаемся, что это массив
+    tickets.value = Array.isArray(ticketsData) ? ticketsData : [];
   } catch (error) {
     ticketError.value = 'Не удалось загрузить билеты';
+    tickets.value = [];
   } finally {
     ticketsLoading.value = false;
   }
@@ -1686,6 +2182,219 @@ const deletePromoCodeHandler = async (id: number) => {
   }
 };
 
+// Концерты
+const concerts = ref<Concert[]>([]);
+const concertsLoading = ref(false);
+const concertsError = ref('');
+const showCreateConcert = ref(false);
+const editingConcert = ref<Concert | null>(null);
+const concertForm = ref<CreateConcertRequest & { id?: number }>({
+  title: '',
+  slug: '',
+  description: '',
+  concertDate: '',
+  eventStartTime: '',
+  guestStartTime: '',
+  venue: '',
+  city: '',
+  currency: 'RUB',
+  ageRestriction: '',
+  eventType: '',
+  posterUrl: '',
+  salesSchemeUrl: ''
+});
+const concertSaving = ref(false);
+const concertSaveError = ref('');
+const concertSaveSuccess = ref('');
+const posterUploading = ref(false);
+const schemeUploading = ref(false);
+
+const loadConcerts = async () => {
+  concertsLoading.value = true;
+  concertsError.value = '';
+  try {
+    concerts.value = await fetchAllConcerts();
+  } catch (error: any) {
+    console.error('Error loading concerts:', error);
+    concertsError.value = error.response?.data?.error || error.message || 'Не удалось загрузить концерты';
+  } finally {
+    concertsLoading.value = false;
+  }
+};
+
+const editConcert = (concert: Concert) => {
+  editingConcert.value = concert;
+  concertForm.value = {
+    title: concert.title,
+    slug: concert.slug,
+    description: concert.description || '',
+    concertDate: concert.concertDate ? new Date(concert.concertDate).toISOString().slice(0, 16) : '',
+    eventStartTime: concert.eventStartTime ? new Date(concert.eventStartTime).toISOString().slice(0, 16) : '',
+    guestStartTime: concert.guestStartTime ? new Date(concert.guestStartTime).toISOString().slice(0, 16) : '',
+    venue: concert.venue || '',
+    city: concert.city || '',
+    currency: concert.currency || 'RUB',
+    ageRestriction: concert.ageRestriction || '',
+    eventType: concert.eventType || '',
+    posterUrl: concert.posterUrl || '',
+    salesSchemeUrl: concert.salesSchemeUrl || '',
+    id: concert.id
+  };
+  showCreateConcert.value = true;
+};
+
+const closeConcertModal = () => {
+  showCreateConcert.value = false;
+  editingConcert.value = null;
+  concertForm.value = {
+    title: '',
+    slug: '',
+    description: '',
+    concertDate: '',
+    eventStartTime: '',
+    guestStartTime: '',
+    venue: '',
+    city: '',
+    currency: 'RUB',
+    ageRestriction: '',
+    eventType: '',
+    posterUrl: '',
+    salesSchemeUrl: ''
+  };
+  concertSaveError.value = '';
+  concertSaveSuccess.value = '';
+};
+
+const generateSlug = (title: string) => {
+  return title
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+};
+
+const handleTitleChange = () => {
+  if (!editingConcert.value && !concertForm.value.slug) {
+    concertForm.value.slug = generateSlug(concertForm.value.title);
+  }
+};
+
+const handlePosterUpload = async (event: Event) => {
+  const input = event.target as HTMLInputElement;
+  const file = input.files?.[0];
+  if (!file) return;
+  
+  posterUploading.value = true;
+  try {
+    const url = await uploadPoster(file);
+    concertForm.value.posterUrl = url;
+  } catch (error: any) {
+    concertSaveError.value = 'Не удалось загрузить афишу: ' + (error.response?.data?.error || error.message);
+  } finally {
+    posterUploading.value = false;
+    input.value = '';
+  }
+};
+
+const handleSchemeUpload = async (event: Event) => {
+  const input = event.target as HTMLInputElement;
+  const file = input.files?.[0];
+  if (!file) return;
+  
+  if (!file.name.toLowerCase().endsWith('.svg')) {
+    concertSaveError.value = 'Только SVG файлы разрешены для схемы';
+    return;
+  }
+  
+  schemeUploading.value = true;
+  try {
+    const url = await uploadScheme(file);
+    concertForm.value.salesSchemeUrl = url;
+  } catch (error: any) {
+    concertSaveError.value = 'Не удалось загрузить схему: ' + (error.response?.data?.error || error.message);
+  } finally {
+    schemeUploading.value = false;
+    input.value = '';
+  }
+};
+
+const saveConcert = async () => {
+  if (!concertForm.value.title || !concertForm.value.slug) {
+    concertSaveError.value = 'Название и slug обязательны';
+    return;
+  }
+  
+  concertSaving.value = true;
+  concertSaveError.value = '';
+  concertSaveSuccess.value = '';
+  try {
+    if (editingConcert.value) {
+      const updateData: UpdateConcertRequest = {
+        title: concertForm.value.title,
+        slug: concertForm.value.slug,
+        description: concertForm.value.description || null,
+        concertDate: concertForm.value.concertDate ? new Date(concertForm.value.concertDate).toISOString() : null,
+        eventStartTime: concertForm.value.eventStartTime ? new Date(concertForm.value.eventStartTime).toISOString() : null,
+        guestStartTime: concertForm.value.guestStartTime ? new Date(concertForm.value.guestStartTime).toISOString() : null,
+        venue: concertForm.value.venue || null,
+        city: concertForm.value.city || null,
+        currency: concertForm.value.currency || null,
+        ageRestriction: concertForm.value.ageRestriction || null,
+        eventType: concertForm.value.eventType || null,
+        posterUrl: concertForm.value.posterUrl || null,
+        salesSchemeUrl: concertForm.value.salesSchemeUrl || null
+      };
+      await updateConcert(editingConcert.value.id, updateData);
+      concertSaveSuccess.value = 'Концерт успешно обновлен';
+    } else {
+      const createData: CreateConcertRequest = {
+        title: concertForm.value.title,
+        slug: concertForm.value.slug,
+        description: concertForm.value.description || null,
+        concertDate: new Date(concertForm.value.concertDate).toISOString(),
+        eventStartTime: concertForm.value.eventStartTime ? new Date(concertForm.value.eventStartTime).toISOString() : null,
+        guestStartTime: concertForm.value.guestStartTime ? new Date(concertForm.value.guestStartTime).toISOString() : null,
+        venue: concertForm.value.venue || null,
+        city: concertForm.value.city || null,
+        currency: concertForm.value.currency || null,
+        ageRestriction: concertForm.value.ageRestriction || null,
+        eventType: concertForm.value.eventType || null,
+        posterUrl: concertForm.value.posterUrl || null,
+        salesSchemeUrl: concertForm.value.salesSchemeUrl || null
+      };
+      await createConcert(createData);
+      concertSaveSuccess.value = 'Концерт успешно создан';
+    }
+    
+    // Обновляем список концертов
+    await loadConcerts();
+    
+    // Закрываем модальное окно через небольшую задержку, чтобы показать сообщение об успехе
+    setTimeout(() => {
+      closeConcertModal();
+    }, 1000);
+  } catch (error: any) {
+    console.error('Error saving concert:', error);
+    const errorMessage = error.response?.data?.error || error.response?.data?.message || error.message || 'Не удалось сохранить концерт';
+    concertSaveError.value = errorMessage;
+    // Не закрываем модальное окно при ошибке, чтобы пользователь мог исправить данные
+  } finally {
+    concertSaving.value = false;
+  }
+};
+
+const deleteConcertHandler = async (id: number) => {
+  if (!confirm('Вы уверены, что хотите удалить этот концерт? Это действие нельзя отменить.')) {
+    return;
+  }
+  try {
+    await deleteConcert(id);
+    await loadConcerts();
+  } catch (error: any) {
+    console.error('Error deleting concert:', error);
+    concertsError.value = error.response?.data?.error || error.message || 'Не удалось удалить концерт';
+  }
+};
+
 const getCategoryDisplayName = (category: SeatCategorySummary) => {
   // Убираем цену из названия категории (удаляем все цифры, пробелы и символ ₽)
   return category.name.replace(/\s*\d+[\s₽]*/g, '').trim() || category.name;
@@ -1736,10 +2445,14 @@ const loadSeatConfig = async () => {
   seatConfigError.value = '';
   try {
     const [categories, tables] = await Promise.all([fetchSeatCategories(), fetchSeatTableAssignments()]);
-    seatCategories.value = categories;
-    seatTables.value = tables;
+    // Нормализуем данные - убеждаемся, что это массивы
+    const categoriesArray = Array.isArray(categories) ? categories : [];
+    const tablesArray = Array.isArray(tables) ? tables : [];
+    
+    seatCategories.value = categoriesArray;
+    seatTables.value = tablesArray;
     const categoryState: Record<number, CategoryFormState> = {};
-    categories.forEach((category, index) => {
+    categoriesArray.forEach((category, index) => {
       categoryState[category.id] = {
         name: category.name,
         price: displayPriceInput(category.priceCents),
@@ -1754,7 +2467,7 @@ const loadSeatConfig = async () => {
     const selectionState: Record<number, number | null> = {};
     const overrideState: Record<number, string> = {};
     const seatState: Record<number, string> = {};
-    tables.forEach((table) => {
+    tablesArray.forEach((table) => {
       selectionState[table.tableNumber] = table.seatCategoryId;
       overrideState[table.tableNumber] = displayPriceInput(table.overridePriceCents ?? null);
       seatState[table.tableNumber] = '';
@@ -1762,8 +2475,13 @@ const loadSeatConfig = async () => {
     tableSelections.value = selectionState;
     tableOverrideInputs.value = overrideState;
     tableSeatSelection.value = seatState;
-  } catch (error) {
-    seatConfigError.value = 'Не удалось загрузить конфигурацию зала';
+  } catch (error: any) {
+    console.error('Error loading seat config:', error);
+    const errorMessage = error.response?.data?.error || error.response?.data?.message || error.message || 'Не удалось загрузить конфигурацию зала';
+    seatConfigError.value = errorMessage;
+    if (error.response?.status === 401 || error.response?.status === 403) {
+      seatConfigError.value = 'Доступ запрещен. Убедитесь, что вы авторизованы и имеете права доступа.';
+    }
   } finally {
     seatConfigLoading.value = false;
   }
@@ -1857,8 +2575,204 @@ const assignTables = async (tableNumbers: number[], categoryId: number | null) =
   }
 };
 
+const applyTableSettings = async (tableNumber: number) => {
+  const categoryId = tableSelections.value[tableNumber] ?? null;
+  const priceOverride = tableOverrideInputs.value[tableNumber] ?
+    parsePriceInput(tableOverrideInputs.value[tableNumber]) : null;
+
+  try {
+    // Применяем категорию
+    if (categoryId !== null) {
+      await assignTables([tableNumber], categoryId);
+    }
+
+    // Применяем переопределение цены, если указано
+    if (priceOverride !== null) {
+      await overrideSeatPrice({
+        tableNumber,
+        priceCents: priceOverride
+      });
+    }
+
+    await loadSeatConfig(); // Перезагружаем данные
+  } catch (error) {
+    seatConfigError.value = 'Не удалось применить настройки стола';
+  }
+};
+
+const applyDanceFloorSettings = async () => {
+  try {
+    const categoryId = danceFloorCategoryId.value;
+    const priceOverride = danceFloorPriceOverride.value ?
+      parsePriceInput(danceFloorPriceOverride.value) : null;
+
+    // Применяем категорию для танцпола
+    if (categoryId !== null) {
+      await assignTables([0], categoryId);
+    }
+
+    // Применяем переопределение цены, если указано
+    if (priceOverride !== null) {
+      await overrideSeatPrice({
+        tableNumber: 0,
+        priceCents: priceOverride
+      });
+    }
+
+    await loadSeatConfig(); // Перезагружаем данные
+  } catch (error) {
+    seatConfigError.value = 'Не удалось применить настройки танцпола';
+  }
+};
+
+const loadDanceFloorSeats = async () => {
+  if (!danceFloorAssignment.value) return;
+
+  danceFloorSeatsLoading.value = true;
+  danceFloorSeatsError.value = '';
+
+  try {
+    // Получаем первый концерт
+    const concerts = await fetchAllConcerts();
+    if (concerts.length === 0) {
+      danceFloorSeatsError.value = 'Нет доступных концертов';
+      return;
+    }
+
+    const concertId = concerts[0].id;
+    const allSeats = await fetchSeats(concertId);
+
+    // Фильтруем только места танцпола (tableNumber = 0)
+    danceFloorSeats.value = allSeats.filter(seat => seat.tableNumber === 0);
+
+    // Инициализируем цены для редактирования
+    danceFloorSeatPrices.value = {};
+    danceFloorSeats.value.forEach(seat => {
+      danceFloorSeatPrices.value[seat.id] = seat.priceOverrideCents ?
+        seat.priceOverrideCents.toString() : seat.priceCents.toString();
+    });
+  } catch (error: any) {
+    console.error('Error loading dance floor seats:', error);
+    danceFloorSeatsError.value = 'Не удалось загрузить места танцпола';
+  } finally {
+    danceFloorSeatsLoading.value = false;
+  }
+};
+
+const blockDanceFloorSeat = async (seatId: number) => {
+  try {
+    await blockSeat(seatId);
+    await loadDanceFloorSeats(); // Перезагружаем список
+  } catch (error: any) {
+    console.error('Error blocking dance floor seat:', error);
+    danceFloorSeatsError.value = 'Не удалось заблокировать место';
+  }
+};
+
+const unblockDanceFloorSeat = async (seatId: number) => {
+  try {
+    await unblockSeat(seatId);
+    await loadDanceFloorSeats(); // Перезагружаем список
+  } catch (error: any) {
+    console.error('Error unblocking dance floor seat:', error);
+    danceFloorSeatsError.value = 'Не удалось разблокировать место';
+  }
+};
+
+const updateDanceFloorSeatPrice = async (seatId: number) => {
+  const priceString = danceFloorSeatPrices.value[seatId];
+  if (!priceString) return;
+
+  const priceCents = parsePriceInput(priceString);
+  if (priceCents === null) return;
+
+  try {
+    await overrideSeatPrice({
+      seatId,
+      priceCents
+    });
+    await loadDanceFloorSeats(); // Перезагружаем список
+  } catch (error: any) {
+    console.error('Error updating dance floor seat price:', error);
+    danceFloorSeatsError.value = 'Не удалось обновить цену места';
+  }
+};
+
 const applyTableCategory = async (tableNumber: number) => {
   await assignTables([tableNumber], tableSelections.value[tableNumber] ?? null);
+};
+
+const createDanceFloorSeats = async () => {
+  if (!danceFloorSeatId.value || !danceFloorCategoryId.value || !danceFloorCapacity.value) {
+    danceFloorError.value = 'Заполните все поля';
+    return;
+  }
+
+  if (danceFloorCapacity.value < 1) {
+    danceFloorError.value = 'Количество билетов должно быть больше 0';
+    return;
+  }
+
+  danceFloorError.value = '';
+  danceFloorSuccess.value = '';
+  seatConfigLoading.value = true;
+
+  try {
+    // Получаем текущий концерт по slug из URL
+    const currentPath = window.location.pathname;
+    const slug = currentPath.startsWith('/') ? currentPath.substring(1) : currentPath;
+
+    if (!slug) {
+      danceFloorError.value = 'Не удалось определить текущий концерт. Убедитесь, что вы находитесь на странице концерта.';
+      return;
+    }
+
+    const currentConcert = await fetchConcertBySlug(slug);
+    if (!currentConcert) {
+      danceFloorError.value = 'Концерт не найден.';
+      return;
+    }
+
+    const concertId = currentConcert.id;
+
+    // Создаем места для танцпола
+    // tableNumber = 0 для танцпола, chairNumber от 1 до capacity
+    await bulkCreateSeats({
+      concertId,
+      categoryId: danceFloorCategoryId.value,
+      tables: [{
+        tableNumber: 0,
+        chairsCount: danceFloorCapacity.value
+      }]
+    });
+
+    danceFloorSuccess.value = `Успешно создано ${danceFloorCapacity.value} мест для танцпола (ID кружка: ${danceFloorSeatId.value})`;
+
+    // Очищаем форму
+    danceFloorSeatId.value = null;
+    danceFloorCategoryId.value = null;
+    danceFloorCapacity.value = null;
+
+    // Обновляем конфигурацию
+    await loadSeatConfig();
+
+    // Если мы на странице концерта, перезагружаем места
+    if (window.location.pathname.startsWith('/')) {
+      // Обновляем store с местами для текущего концерта
+      const seatStore = useSeatStore();
+      await seatStore.loadSeats();
+    }
+
+    // Очищаем сообщение об успехе через 5 секунд
+    setTimeout(() => {
+      danceFloorSuccess.value = '';
+    }, 5000);
+  } catch (error: any) {
+    console.error('Error creating dance floor seats:', error);
+    danceFloorError.value = error.response?.data?.error || error.response?.data?.message || 'Не удалось создать места для танцпола';
+  } finally {
+    seatConfigLoading.value = false;
+  }
 };
 
 onMounted(() => {
@@ -1866,18 +2780,35 @@ onMounted(() => {
     refreshTickets();
     loadSeatConfig();
     checkAdminAccess();
+    
+    // Проверяем query параметр для автоматического открытия раздела
+    const section = route.query.section as string;
+    if (section) {
+      openSection(section);
+    }
   }
 });
 
 watch(isAuthenticated, (newVal) => {
   if (newVal) {
     checkAdminAccess();
+    // Проверяем query параметр для автоматического открытия раздела после авторизации
+    const section = route.query.section as string;
+    if (section) {
+      // Небольшая задержка, чтобы данные успели загрузиться
+      setTimeout(() => {
+        openSection(section);
+      }, 100);
+    }
   } else {
     isAdmin.value = false;
   }
 });
 
 watch(tickets, (list) => {
+  if (!Array.isArray(list)) {
+    return;
+  }
   const reservedIds = new Set(list.filter((ticket) => ticket.status === 'RESERVED').map((ticket) => ticket.id));
   const filtered = new Set<string>();
   selectedTicketIds.value.forEach((id) => {
@@ -1967,5 +2898,9 @@ watch(isAuthenticated, (val) => {
   min-width: 48px;
   padding: 0;
   height: 32px;
+}
+
+.text-purple {
+  color: #6f42c1;
 }
 </style>

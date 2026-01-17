@@ -29,16 +29,40 @@ public class Concert {
 
     private String title;
 
+    @Column(unique = true, nullable = false)
+    private String slug;
+
     @Column(columnDefinition = "TEXT")
     private String description;
 
     @Column(name = "concert_date")
     private Instant concertDate;
 
+    @Column(name = "event_start_time")
+    private Instant eventStartTime;
+
+    @Column(name = "guest_start_time")
+    private Instant guestStartTime;
+
     private String venue;
+
+    @Column(name = "city")
+    private String city;
+
+    @Column(name = "currency")
+    private String currency;
+
+    @Column(name = "age_restriction")
+    private String ageRestriction;
+
+    @Column(name = "event_type")
+    private String eventType;
 
     @Column(name = "poster_url")
     private String posterUrl;
+
+    @Column(name = "sales_scheme_url", columnDefinition = "TEXT")
+    private String salesSchemeUrl;
 
     @Column(name = "created_at")
     private Instant createdAt;

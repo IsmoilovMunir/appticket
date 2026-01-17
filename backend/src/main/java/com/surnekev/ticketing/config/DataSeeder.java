@@ -46,6 +46,7 @@ public class DataSeeder implements CommandLineRunner {
 
         Concert concert = concertRepository.save(Concert.builder()
                 .title("Новогодний вечер с SAFARMUHAMMAD")
+                .slug("novogodniy-vecher-s-safarmuhammad")
                 .description(description)
                 .concertDate(concertDate)
                 .venue("м. Текстильщики, улица Юных Ленинцев, 12, ресторан «АСАКИ»")

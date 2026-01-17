@@ -1020,7 +1020,7 @@ import rizoImage from '../assets/rizo.png';
 import furqatImage from '../assets/furqat.png';
 import organizerLogo from '../assets/log.svg';
 
-const concertId = 1;
+const concertId = 107;
 const modalOpen = ref(false);
 const selectedSponsor = ref<any>(null);
 const showPartnerRequestModal = ref(false);

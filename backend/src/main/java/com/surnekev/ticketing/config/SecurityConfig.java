@@ -2,6 +2,8 @@ package com.surnekev.ticketing.config;
 
 import com.surnekev.ticketing.security.JwtAuthenticationFilter;
 import com.surnekev.ticketing.security.RateLimitFilter;
+import com.surnekev.ticketing.security.NoOpRateLimitFilter;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -25,10 +27,16 @@ import java.util.List;
 @EnableMethodSecurity
 public class SecurityConfig {
 
+    @Value("${spring.data.redis.enabled:true}")
+    private boolean redisEnabled;
+
     @Bean
     public SecurityFilterChain apiSecurity(HttpSecurity http,
                                            JwtAuthenticationFilter jwtAuthenticationFilter,
-                                           RateLimitFilter rateLimitFilter) throws Exception {
+                                           RateLimitFilter rateLimitFilter,
+                                           NoOpRateLimitFilter noOpRateLimitFilter) throws Exception {
+        var rateLimitFilterToUse = redisEnabled ? rateLimitFilter : noOpRateLimitFilter;
+
         http.csrf(csrf -> csrf.disable())
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
@@ -43,13 +51,15 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/partner-request").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/auth/login").permitAll()
                         .requestMatchers("/api/telegram/webhook").permitAll()
+                        // Публичный доступ к загруженным файлам
+                        .requestMatchers(HttpMethod.GET, "/uploads/**").permitAll()
                         // Swagger только для разработки - в продакшене закрыть!
                         .requestMatchers("/v3/api-docs/**", "/swagger-ui/**").permitAll()
                         // Все админские эндпоинты требуют аутентификации
                         .requestMatchers("/api/admin/**").hasAnyRole("ADMIN", "MANAGER", "CHECKIN")
                         .anyRequest().authenticated()
                 )
-                .addFilterBefore(rateLimitFilter, UsernamePasswordAuthenticationFilter.class)
+                .addFilterBefore(rateLimitFilterToUse, UsernamePasswordAuthenticationFilter.class)
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
         return http.build();
     }

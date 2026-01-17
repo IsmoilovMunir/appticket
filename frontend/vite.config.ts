@@ -23,6 +23,10 @@ export default defineConfig({
         target: 'http://localhost:8080',
         changeOrigin: true
       },
+      '/uploads': {
+        target: 'http://localhost:8080',
+        changeOrigin: true
+      },
       '/ws-seat-status': {
         target: 'ws://localhost:8080',
         ws: true,

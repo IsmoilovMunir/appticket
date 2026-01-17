@@ -158,6 +158,10 @@ const close = () => {
     autoCloseTimerId = null;
   }
   isVisible.value = false;
+
+  // Сохраняем в localStorage, что splash был показан
+  localStorage.setItem('splash-screen-shown', 'true');
+
   emit('close');
 };
 
@@ -173,19 +177,26 @@ const handleBuyClick = () => {
 };
 
 onMounted(async () => {
+  // Проверяем, был ли уже показан splash screen
+  const splashShown = localStorage.getItem('splash-screen-shown');
+  if (splashShown === 'true') {
+    // Splash уже был показан, не показываем его снова
+    return;
+  }
+
   // Загружаем концерт, если его еще нет в store
   if (!concert.value) {
     try {
-      await concertStore.load(1); // ID концерта по умолчанию
+      await concertStore.load(107); // Правильный ID концерта
     } catch (error) {
       console.error('Failed to load concert:', error);
     }
   }
-  
-  // Показываем splash при каждой загрузке страницы с небольшой задержкой для плавности
+
+  // Показываем splash только при первом заходе на страницу
   setTimeout(() => {
     isVisible.value = true;
-    
+
     // Запускаем таймер автоматического закрытия через 7 секунд
     autoCloseTimerId = window.setTimeout(() => {
       if (isVisible.value) {

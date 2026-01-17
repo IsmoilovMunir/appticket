@@ -1,6 +1,7 @@
 package com.surnekev.ticketing.web;
 
 import com.surnekev.ticketing.dto.AssignSeatCategoryRequest;
+import com.surnekev.ticketing.dto.BulkCreateSeatsRequest;
 import com.surnekev.ticketing.dto.CreateSeatCategoryRequest;
 import com.surnekev.ticketing.dto.SeatCategoryDto;
 import com.surnekev.ticketing.dto.SeatCategoryUpdateRequest;
@@ -9,7 +10,9 @@ import com.surnekev.ticketing.dto.SeatTableAssignmentDto;
 import com.surnekev.ticketing.service.SeatAdminService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -20,6 +23,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/admin/seat-config")
@@ -58,6 +62,25 @@ public class SeatAdminController {
     @PostMapping("/tables/override-price")
     public void overridePrice(@RequestBody @Valid SeatPriceOverrideRequest request) {
         seatAdminService.applyPriceOverride(request);
+    }
+
+    @PostMapping("/seats/bulk-create")
+    public ResponseEntity<Map<String, Object>> bulkCreateSeats(
+            @RequestBody @Valid BulkCreateSeatsRequest request) {
+        int createdCount = seatAdminService.bulkCreateSeats(request);
+        return ResponseEntity.ok(
+                Map.of("created", createdCount, "message", "Seats created successfully")
+        );
+    }
+
+    @DeleteMapping("/seats/{seatId}")
+    public ResponseEntity<?> deleteSeat(@PathVariable Long seatId) {
+        try {
+            seatAdminService.deleteSeat(seatId);
+            return ResponseEntity.ok(Map.of("message", "Seat deleted successfully"));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
     }
 }
 

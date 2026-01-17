@@ -24,14 +24,31 @@ public class ConcertController {
         return concertService.getConcert(id);
     }
 
+    @GetMapping("/slug/{slug}")
+    public ConcertDto getConcertBySlug(@PathVariable String slug) {
+        return concertService.getConcertBySlug(slug);
+    }
+
     @GetMapping("/{id}/seats")
     public List<SeatDto> getSeats(@PathVariable Long id) {
         return concertService.listSeats(id);
     }
 
+    @GetMapping("/slug/{slug}/seats")
+    public List<SeatDto> getSeatsBySlug(@PathVariable String slug) {
+        ConcertDto concert = concertService.getConcertBySlug(slug);
+        return concertService.listSeats(concert.id());
+    }
+
     @GetMapping("/{id}/categories")
     public List<SeatCategoryDto> getCategories(@PathVariable Long id) {
         return concertService.listCategories(id);
+    }
+
+    @GetMapping("/slug/{slug}/categories")
+    public List<SeatCategoryDto> getCategoriesBySlug(@PathVariable String slug) {
+        ConcertDto concert = concertService.getConcertBySlug(slug);
+        return concertService.listCategories(concert.id());
     }
 }
 

@@ -26,9 +26,18 @@ import hallSvg from '../assets/hall.svg?raw';
 import { useSeatStore } from '../stores/seatStore';
 import { resolveCategoryColor } from '../utils/seatColors';
 
+const props = defineProps<{
+  schemeUrl?: string | null;
+}>();
+
+const emit = defineEmits<{
+  danceFloorClicked: [data: { availableSeats: number; price: number }];
+}>();
+
 const svgHost = ref<HTMLElement | null>(null);
 const viewport = ref<HTMLElement | null>(null);
-const svgMarkup = hallSvg;
+const svgMarkup = ref<string>(hallSvg);
+const loadingScheme = ref(false);
 const seatStore = useSeatStore();
 const seatElementsById = ref<Map<number, SVGElement>>(new Map());
 const seatElementsByLayout = ref<Map<number, SVGElement>>(new Map());
@@ -146,7 +155,8 @@ const deriveTableAndChair = (value?: number) => {
 };
 
 const buildLayoutKey = (tableNumber?: number, chairNumber?: number) => {
-  if (!tableNumber || !chairNumber) return undefined;
+  // tableNumber может быть 0 для танцпола, поэтому проверяем !== undefined
+  if (tableNumber === undefined || tableNumber === null || chairNumber === undefined || chairNumber === null) return undefined;
   return tableNumber * 100 + chairNumber;
 };
 
@@ -208,6 +218,10 @@ const buildSeatIndex = () => {
       currentTableNumber = tableAttrNumber;
       tableMap.set(tableAttrNumber, node);
     }
+    // Специальная обработка для танцпола (tableNumber = 0)
+    if (tableAttrNumber === 0) {
+      tableMap.set(0, node);
+    }
 
     const meta = extractSeatMeta(node);
     if (!meta) return;
@@ -217,13 +231,14 @@ const buildSeatIndex = () => {
     if (meta.seatId && !Number.isNaN(meta.seatId)) {
       idMap.set(meta.seatId, node);
     }
-    if (meta.tableNumber && meta.chairNumber) {
+    // tableNumber может быть 0 для танцпола, поэтому проверяем !== undefined
+    if (meta.tableNumber !== undefined && meta.tableNumber !== null && meta.chairNumber !== undefined && meta.chairNumber !== null) {
       const key = `${meta.tableNumber}-${meta.chairNumber}`;
       if (!positionMap.has(key)) {
         positionMap.set(key, node);
       }
       const layoutKey = buildLayoutKey(meta.tableNumber, meta.chairNumber);
-      if (layoutKey && !layoutMap.has(layoutKey)) {
+      if (layoutKey !== undefined && !layoutMap.has(layoutKey)) {
         layoutMap.set(layoutKey, node);
       }
     }
@@ -248,6 +263,20 @@ const resolveSeatElement = (seatId: number, tableNumber: number, chairNumber: nu
 };
 
 const applySeatColor = (node: SVGElement, seat: Seat) => {
+  // Танцпол (tableNumber = 0) не красим, сохраняем оригинальный цвет
+  if (seat.tableNumber === 0) {
+    // Для танцпола сохраняем оригинальный цвет #E46904, если не выбран
+    // Используем !important чтобы переопределить CSS правила
+    if (seatStore.selected.has(seat.id)) {
+      node.style.setProperty('fill', '#6c757d', 'important');
+    } else if (seat.status === 'AVAILABLE') {
+      node.style.setProperty('fill', '#E46904', 'important');
+    } else {
+      node.style.setProperty('fill', '#6c757d', 'important');
+    }
+    return;
+  }
+  
   // Если место выбрано, делаем его серым
   if (seatStore.selected.has(seat.id)) {
     node.style.fill = '#6c757d';
@@ -286,7 +315,46 @@ const updateSeatAppearance = () => {
     }
     applySeatColor(node, seat);
   });
+  updateDanceFloorInfo();
   updateTableColors();
+};
+
+const updateDanceFloorInfo = () => {
+  const host = svgHost.value;
+  if (!host) return;
+
+  // Находим все элементы танцпола
+  const danceFloorElements = host.querySelectorAll('circle[data-table="0"].dance-floor');
+
+  if (danceFloorElements.length === 0) return;
+
+  // Получаем информацию о местах танцпола
+  const danceFloorSeats = seatStore.seats.filter(s => s.tableNumber === 0);
+  const availableSeats = danceFloorSeats.filter(s => s.status === 'AVAILABLE');
+  const totalSeats = danceFloorSeats.length;
+
+  // Получаем цену (берем цену первого доступного места)
+  const price = availableSeats.length > 0 ? availableSeats[0].priceCents : 0;
+
+  // Форматируем цену
+  const formatPrice = (cents: number) => {
+    return new Intl.NumberFormat('ru-RU', {
+      style: 'currency',
+      currency: 'RUB',
+      maximumFractionDigits: 0
+    }).format(cents / 100);
+  };
+
+  const priceText = price > 0 ? formatPrice(price) : 'Цена не установлена';
+
+  // Создаем текст для title
+  const titleText = `Танцпол · ${priceText} · Доступно: ${availableSeats.length}/${totalSeats} мест`;
+
+  // Обновляем title для всех элементов танцпола
+  danceFloorElements.forEach((element) => {
+    const svgElement = element as SVGElement;
+    svgElement.setAttribute('title', titleText);
+  });
 };
 
 const updateTableColors = () => {
@@ -295,7 +363,8 @@ const updateTableColors = () => {
 
   seatStore.seats.forEach((seat) => {
     const tableNumber = seat.tableNumber;
-    if (!tableNumber || seen.has(tableNumber)) return;
+    // tableNumber может быть 0 для танцпола, поэтому проверяем !== undefined вместо truthy
+    if (tableNumber === undefined || tableNumber === null || seen.has(tableNumber)) return;
     seen.add(tableNumber);
 
     const node = tableElementsByNumber.value.get(tableNumber);
@@ -331,7 +400,8 @@ const updateTableColors = () => {
 };
 
 const findSeatByMeta = (meta: SeatMeta) => {
-  if (meta.tableNumber && meta.chairNumber) {
+  // tableNumber может быть 0 для танцпола, поэтому проверяем !== undefined
+  if (meta.tableNumber !== undefined && meta.tableNumber !== null && meta.chairNumber !== undefined && meta.chairNumber !== null) {
     return seatStore.seats.find(
       (seat) => seat.tableNumber === meta.tableNumber && seat.chairNumber === meta.chairNumber
     );
@@ -361,6 +431,33 @@ const handleSeatClick = (event: Event) => {
   const target = (event.target as HTMLElement)?.closest<HTMLElement>('[data-seat-id],[data-table],[data-chair]');
   const meta = extractSeatMeta(target as Element);
   if (!meta) return;
+  
+  // Специальная обработка для танцпола (tableNumber = 0)
+  if (meta.tableNumber === 0) {
+    const danceFloorSeats = seatStore.seats.filter(
+      (s) => s.tableNumber === 0 && s.status === 'AVAILABLE'
+    );
+    
+    if (danceFloorSeats.length === 0) {
+      blockedMessage.value = 'Танцпол полностью занят. Пожалуйста, выберите другое место.';
+      if (blockedTimer !== null) {
+        clearTimeout(blockedTimer);
+      }
+      blockedTimer = window.setTimeout(() => {
+        blockedMessage.value = null;
+        blockedTimer = null;
+      }, 3000);
+      return;
+    }
+    
+    // Отправляем событие родительскому компоненту для показа quantity selector
+    emit('danceFloorClicked', {
+      availableSeats: danceFloorSeats.length,
+      price: danceFloorSeats[0].priceCents
+    });
+    return;
+  }
+  
   const seat = findSeatByMeta(meta);
   if (!seat) {
     if (meta.tableNumber) {
@@ -407,23 +504,108 @@ const handleSeatClick = (event: Event) => {
   seatStore.toggleSeat(seat.id);
 };
 
-const hydrateSvg = () => {
-  buildSeatIndex();
-  updateSeatAppearance();
-};
-
-onMounted(() => {
-  nextTick(() => {
+const loadSchemeFromUrl = async (url: string) => {
+  loadingScheme.value = true;
+  try {
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error(`Failed to load scheme: ${response.statusText}`);
+    }
+    const svgText = await response.text();
+    svgMarkup.value = svgText;
+    await nextTick();
     hydrateSvg();
     fitToViewport({ preserveRelative: false });
     centerViewport('auto');
-    svgHost.value?.addEventListener('click', handleSeatClick);
-    viewportObserver = new ResizeObserver(() => fitToViewport());
-    if (viewport.value) {
-      viewportObserver.observe(viewport.value);
+  } catch (error) {
+    console.error('Error loading scheme from URL:', error);
+    // Fallback to default scheme
+    svgMarkup.value = hallSvg;
+    await nextTick();
+    hydrateSvg();
+    fitToViewport({ preserveRelative: false });
+    centerViewport('auto');
+  } finally {
+    loadingScheme.value = false;
+  }
+};
+
+const hydrateSvg = () => {
+  // Находим элемент танцпола и добавляем атрибут data-table="0"
+  const host = svgHost.value;
+  if (host) {
+
+    // Ищем все кружки с data-table="0" (танцпол)
+    const danceFloorCircles = host.querySelectorAll('circle[data-table="0"]');
+    danceFloorCircles.forEach((circle) => {
+      const circleEl = circle as SVGElement;
+      circleEl.classList.add('dance-floor');
+      // Принудительно устанавливаем оранжевый цвет для танцпола, если не выбран
+      if (!circleEl.classList.contains('seat-selected')) {
+        circleEl.style.setProperty('fill', '#E46904', 'important');
+      }
+    });
+
+    // Ищем элемент танцпола по data-seat-id="7" или по цвету #E46904
+    const danceFloorElement = host.querySelector('[data-seat-id="7"]') as SVGElement;
+    if (danceFloorElement) {
+      danceFloorElement.setAttribute('data-table', '0');
+      // Добавляем класс для идентификации танцпола
+      danceFloorElement.classList.add('dance-floor');
+      if (!danceFloorElement.classList.contains('seat-selected')) {
+        danceFloorElement.style.setProperty('fill', '#E46904', 'important');
+      }
     }
-  });
+
+    // Также ищем по цвету на случай, если data-seat-id другой
+    const allCircles = host.querySelectorAll('circle[fill="#E46904"], circle[fill="#e46904"]');
+    allCircles.forEach((circle) => {
+      if (!circle.hasAttribute('data-table')) {
+        const circleEl = circle as SVGElement;
+        circleEl.setAttribute('data-table', '0');
+        circleEl.classList.add('dance-floor');
+        if (!circleEl.classList.contains('seat-selected')) {
+          circleEl.style.setProperty('fill', '#E46904', 'important');
+        }
+      }
+    });
+  }
+  buildSeatIndex();
+  updateSeatAppearance();
+  updateDanceFloorInfo();
+};
+
+onMounted(async () => {
+  if (props.schemeUrl) {
+    await loadSchemeFromUrl(props.schemeUrl);
+  } else {
+    await nextTick();
+    hydrateSvg();
+    fitToViewport({ preserveRelative: false });
+    centerViewport('auto');
+  }
+  
+  svgHost.value?.addEventListener('click', handleSeatClick);
+  viewportObserver = new ResizeObserver(() => fitToViewport());
+  if (viewport.value) {
+    viewportObserver.observe(viewport.value);
+  }
 });
+
+watch(
+  () => props.schemeUrl,
+  async (newUrl) => {
+    if (newUrl) {
+      await loadSchemeFromUrl(newUrl);
+    } else {
+      svgMarkup.value = hallSvg;
+      await nextTick();
+      hydrateSvg();
+      fitToViewport({ preserveRelative: false });
+      centerViewport('auto');
+    }
+  }
+);
 
 onBeforeUnmount(() => {
   svgHost.value?.removeEventListener('click', handleSeatClick);
@@ -443,6 +625,7 @@ watch(
   }),
   () => {
     updateSeatAppearance();
+    updateDanceFloorInfo();
   },
   { deep: true }
 );

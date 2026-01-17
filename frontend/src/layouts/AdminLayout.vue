@@ -7,6 +7,7 @@
         </RouterLink>
         <nav class="d-flex gap-3 align-items-center">
           <RouterLink v-if="isAuthenticated" class="nav-link text-white-50" to="/admin">Панель управления</RouterLink>
+          <RouterLink v-if="isAuthenticated" class="nav-link text-white-50" to="/admin/concerts">Концерты</RouterLink>
           <RouterLink v-if="isAuthenticated" class="nav-link text-white-50" to="/checkin">Чек-ин</RouterLink>
           <RouterLink class="nav-link text-white-50" to="/">← На сайт</RouterLink>
           <button v-if="isAuthenticated" class="btn btn-outline-light btn-sm" @click="handleSignOut">Выйти</button>

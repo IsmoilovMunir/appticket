@@ -13,14 +13,24 @@ export const useSeatStore = defineStore('seats', {
     holdExpires: {} as Record<number, number>,
     now: Date.now(),
     ticker: null as ReturnType<typeof setInterval> | null,
-    priceFilter: null as number | null
+    priceFilter: null as number | null,
+    danceFloorQuantity: 0,
+    danceFloorPrice: 0
   }),
   getters: {
     selectedSeats(state) {
       return state.seats.filter((seat) => state.selected.has(seat.id));
     },
-    totalSelectedPrice(): number {
-      return this.selectedSeats.reduce((acc, seat) => acc + seat.priceCents, 0);
+    totalSelectedPrice(state): number {
+      const regularSeatsPrice = state.seats.filter((seat) => state.selected.has(seat.id)).reduce((acc: number, seat) => acc + seat.priceCents, 0);
+      const danceFloorPrice = state.danceFloorQuantity * state.danceFloorPrice;
+      return regularSeatsPrice + danceFloorPrice;
+    },
+    danceFloorSeats(state) {
+      return state.seats.filter((seat: Seat) => seat.tableNumber === 0);
+    },
+    availableDanceFloorSeats(state) {
+      return state.seats.filter((seat: Seat) => seat.tableNumber === 0 && seat.status === 'AVAILABLE');
     },
     holdCountdowns(state) {
       const result: Record<number, number> = {};
@@ -69,9 +79,19 @@ export const useSeatStore = defineStore('seats', {
       }
       this.selected = new Set(this.selected);
     },
+    setDanceFloorQuantity(quantity: number) {
+      // Ограничиваем максимум 10 местами (вместе с обычными местами)
+      const maxAllowed = Math.max(0, 10 - this.selected.size);
+      this.danceFloorQuantity = Math.min(Math.max(0, quantity), maxAllowed);
+    },
+    getDanceFloorPrice(state: any): number {
+      const availableSeats = state.seats.filter((seat: Seat) => seat.tableNumber === 0 && seat.status === 'AVAILABLE');
+      return availableSeats.length > 0 ? availableSeats[0].priceCents : 0;
+    },
     clearSelection() {
       this.selected.clear();
       this.selected = new Set();
+      this.danceFloorQuantity = 0;
     },
     setPriceFilter(price: number | null) {
       this.priceFilter = price;
