@@ -8,6 +8,9 @@ import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
 
+import javax.sql.DataSource;
+import java.sql.Connection;
+
 @Component
 @RequiredArgsConstructor
 @Slf4j
@@ -15,6 +18,17 @@ import org.springframework.stereotype.Component;
 public class SchemaMaintenanceRunner implements CommandLineRunner {
 
     private final JdbcTemplate jdbcTemplate;
+    private final DataSource dataSource;
+
+    private boolean isPostgreSQL() {
+        try (Connection conn = dataSource.getConnection()) {
+            String product = conn.getMetaData().getDatabaseProductName();
+            return product != null && product.toLowerCase().contains("postgresql");
+        } catch (Exception ex) {
+            log.debug("Could not detect database type: {}", ex.getMessage());
+            return false;
+        }
+    }
 
     @Override
     public void run(String... args) {
@@ -25,35 +39,18 @@ public class SchemaMaintenanceRunner implements CommandLineRunner {
     }
 
     private void ensureReservationStatusConstraint() {
-        String updateConstraint = """
-                DO $$
-                BEGIN
-                    -- Drop the constraint if it exists
-                    ALTER TABLE reservations DROP CONSTRAINT IF EXISTS reservations_status_check;
-                    
-                    -- Add the constraint with all valid status values
-                        ALTER TABLE reservations
-                        ADD CONSTRAINT reservations_status_check
-                        CHECK (status IN (
-                            'HELD',
-                            'PARTIALLY_CONFIRMED',
-                            'PARTIALLY_CANCELLED',
-                            'CONFIRMED',
-                            'CANCELLED',
-                            'EXPIRED'
-                        ));
-                END $$;
+        String dropConstraint = "ALTER TABLE reservations DROP CONSTRAINT IF EXISTS reservations_status_check";
+        String addConstraint = """
+                ALTER TABLE reservations ADD CONSTRAINT reservations_status_check
+                CHECK (status IN ('HELD', 'PARTIALLY_CONFIRMED', 'PARTIALLY_CANCELLED', 'CONFIRMED', 'CANCELLED', 'EXPIRED'))
                 """;
 
         try {
-            jdbcTemplate.execute(updateConstraint);
+            jdbcTemplate.execute(dropConstraint);
+            jdbcTemplate.execute(addConstraint);
             log.info("Reservation status constraint refreshed to include partial states.");
         } catch (DataAccessException ex) {
-            log.error("Unable to refresh reservation status constraint: {}", ex.getMessage(), ex);
-            log.error("Please run the following SQL manually to fix the constraint:");
-            log.error("ALTER TABLE reservations DROP CONSTRAINT IF EXISTS reservations_status_check;");
-            log.error("ALTER TABLE reservations ADD CONSTRAINT reservations_status_check CHECK (status IN ('HELD', 'PARTIALLY_CONFIRMED', 'PARTIALLY_CANCELLED', 'CONFIRMED', 'CANCELLED', 'EXPIRED'));");
-            // Don't throw - allow application to start, but log the error
+            log.warn("Unable to refresh reservation status constraint: {}", ex.getMessage());
         }
     }
 
@@ -89,6 +86,10 @@ public class SchemaMaintenanceRunner implements CommandLineRunner {
     }
 
     private void ensurePdfColumnType() {
+        if (!isPostgreSQL()) {
+            log.debug("Skipping pdf_document migration (PostgreSQL-only).");
+            return;
+        }
         String migrateColumn = """
                 DO $$
                 BEGIN

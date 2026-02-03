@@ -65,8 +65,21 @@ export const useReservationStore = defineStore('reservations', {
         const prefix = reservationNumber ? `Бронь #${reservationNumber} создана.` : 'Заявка отправлена.';
         this.successMessage = `${prefix} В скором времени с вами свяжется менеджер.`;
       } catch (error: unknown) {
-        this.error = 'Не удалось создать бронь';
+        const axiosError = error as { response?: { data?: { message?: string }; status?: number } };
+        const apiMessage = axiosError.response?.data?.message;
+        if (apiMessage) {
+          this.error = apiMessage.startsWith('Seat already sold') || apiMessage.startsWith('Seats already held')
+            ? 'Выбранные места уже заняты. Обновите схему и выберите другие.'
+            : apiMessage.startsWith('Not enough available seats')
+              ? 'Недостаточно свободных мест в выбранной категории. Обновите схему.'
+              : apiMessage;
+        } else {
+          this.error = 'Не удалось создать бронь';
+        }
         this.successMessage = null;
+        if (axiosError.response?.status === 409) {
+          seatStore.loadSeats();
+        }
         throw error;
       } finally {
         this.loading = false;

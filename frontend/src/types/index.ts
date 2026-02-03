@@ -37,12 +37,25 @@ export interface Concert {
   guestStartTime?: string | null;
   venue: string;
   city?: string | null;
+  venueLat?: number | null;
+  venueLon?: number | null;
   currency?: string | null;
   ageRestriction?: string | null;
   eventType?: string | null;
   posterUrl?: string | null;
   salesSchemeUrl?: string | null;
   minTicketPriceCents?: number | null;
+  simpleMode?: boolean;
+  telegramManagerChatIds?: string | null;
+}
+
+export interface SeatCategoryWithAvailability {
+  id: number;
+  name: string;
+  priceCents: number;
+  description?: string | null;
+  colorHex?: string | null;
+  availableCount: number;
 }
 
 export interface CreateConcertRequest {
@@ -54,11 +67,15 @@ export interface CreateConcertRequest {
   guestStartTime?: string | null;
   venue?: string | null;
   city?: string | null;
+  venueLat?: number | null;
+  venueLon?: number | null;
   currency?: string | null;
   ageRestriction?: string | null;
   eventType?: string | null;
   posterUrl?: string | null;
   salesSchemeUrl?: string | null;
+  simpleMode?: boolean;
+  telegramManagerChatIds?: string | null;
 }
 
 export interface UpdateConcertRequest {
@@ -70,11 +87,15 @@ export interface UpdateConcertRequest {
   guestStartTime?: string | null;
   venue?: string | null;
   city?: string | null;
+  venueLat?: number | null;
+  venueLon?: number | null;
   currency?: string | null;
   ageRestriction?: string | null;
   eventType?: string | null;
   posterUrl?: string | null;
   salesSchemeUrl?: string | null;
+  simpleMode?: boolean;
+  telegramManagerChatIds?: string | null;
 }
 
 export interface ReservationResponse {

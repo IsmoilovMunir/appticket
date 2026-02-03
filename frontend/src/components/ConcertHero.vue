@@ -4,36 +4,25 @@
       <div class="hero-content">
         <div class="hero-poster-wrapper">
           <div class="hero-poster-image">
-            <img :src="postImage" alt="Poster" class="hero-poster-img" />
+            <img :src="posterImage" alt="Poster" class="hero-poster-img" />
           </div>
           <div class="hero-info-overlay">
             <div class="hero-info">
               <h1 class="display-3 fw-bold mb-3 hero-title">
-                Новогодний банкет-вечер с Сафармухаммадом в Москве
+                {{ title }}
               </h1>
               <p class="fs-4 text-light mb-4 hero-subtitle">
-                3 часа живой родной музыки, сытный банкет и атмосфера, ради которой приходят со своими
+                {{ description }}
               </p>
-              <div class="hero-utp mb-4">
-                <span class="utp-badge">Еда, напитки, шоу и концерт — всё включено</span>
-              </div>
               
               <div class="hero-facts mb-4">
                 <div class="fact-item">
                   <i class="bi bi-calendar3"></i>
-                  <span>3 января 2026</span>
-                </div>
-                <div class="fact-item">
-                  <i class="bi bi-clock"></i>
-                  <span>Начало в 19:00</span>
+                  <span>{{ formattedDate }}</span>
                 </div>
                 <div class="fact-item">
                   <i class="bi bi-geo-alt"></i>
-                  <span>Банкетный зал Асаки, Москва</span>
-                </div>
-                <div class="fact-item">
-                  <i class="bi bi-people"></i>
-                  <span>Вход 16+</span>
+                  <span>{{ venue }}</span>
                 </div>
               </div>
 
@@ -46,7 +35,7 @@
                 <button class="btn btn-light btn-lg px-5 py-3 buy-button-hero" @click="$emit('cta')">
                   👉 Купить билет сейчас
                 </button>
-                <a href="https://t.me/surnek_events" class="btn btn-outline-light btn-lg px-4 btn-details">
+                <a href="https://t.me/apptickit" class="btn btn-outline-light btn-lg px-4 btn-details">
                   Подробнее
                 </a>
               </div>
@@ -159,6 +148,18 @@ const filteredDescription = computed(() => {
 });
 
 defineEmits(['cta']);
+
+// Форматирование даты (ожидается ISO-строка от API, например "2026-01-03T16:00:00Z")
+const formattedDate = computed(() => {
+  if (!props.date) return '';
+  const date = new Date(props.date);
+  if (isNaN(date.getTime())) return props.date; // Invalid Date — показываем как есть
+  return date.toLocaleDateString('ru-RU', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric'
+  });
+});
 
 // Форматирование минимальной цены
 const formattedMinPrice = computed(() => {
@@ -404,19 +405,21 @@ const formattedMinPrice = computed(() => {
   border-radius: 50px;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  background: linear-gradient(135deg, #18723F 0%, #1f9d6c 100%);
+  background: #1a1a1a;
   color: #ffffff;
-  border: 3px solid #18723F;
-  box-shadow: 0 8px 28px rgba(24, 114, 63, 0.4), 0 4px 12px rgba(0, 0, 0, 0.3);
+  border: 3px solid #1a1a1a;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.3);
   transition: all 0.3s ease;
 }
 
-.buy-button-hero:hover {
+.buy-button-hero:hover,
+.buy-button-hero:active,
+.buy-button-hero:focus {
   transform: translateY(-3px);
-  box-shadow: 0 12px 36px rgba(24, 114, 63, 0.5), 0 6px 16px rgba(0, 0, 0, 0.4);
-  background: linear-gradient(135deg, #145a32 0%, #18723F 100%);
-  color: #ffffff;
-  border-color: #145a32;
+  box-shadow: 0 12px 36px rgba(219, 255, 6, 0.4);
+  background: #DBFF06;
+  color: #000;
+  border-color: #DBFF06;
 }
 
 .btn-outline-light.btn-details {
@@ -664,9 +667,9 @@ const formattedMinPrice = computed(() => {
     font-size: 1rem !important;
     padding: 0.875rem 2rem !important;
     width: 100%;
-    background: linear-gradient(135deg, #18723F 0%, #1f9d6c 100%) !important;
+    background: #1a1a1a !important;
     color: #ffffff !important;
-    border-color: #18723F !important;
+    border-color: #1a1a1a !important;
   }
 
   .btn-details {
@@ -817,9 +820,9 @@ const formattedMinPrice = computed(() => {
     opacity: 1 !important;
     z-index: 100 !important;
     position: relative !important;
-    background: linear-gradient(135deg, #18723F 0%, #1f9d6c 100%) !important;
+    background: #1a1a1a !important;
     color: #ffffff !important;
-    border-color: #18723F !important;
+    border-color: #1a1a1a !important;
   }
 
   section.hero-section .buttons-container {
@@ -969,9 +972,9 @@ const formattedMinPrice = computed(() => {
     width: 100% !important;
     font-size: 0.9rem !important;
     padding: 0.75rem 1.5rem !important;
-    background: linear-gradient(135deg, #18723F 0%, #1f9d6c 100%) !important;
+    background: #1a1a1a !important;
     color: #ffffff !important;
-    border-color: #18723F !important;
+    border-color: #1a1a1a !important;
   }
 
   .hero-price {

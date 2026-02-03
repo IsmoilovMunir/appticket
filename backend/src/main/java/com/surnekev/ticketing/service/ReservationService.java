@@ -8,6 +8,7 @@ import com.surnekev.ticketing.domain.SeatStatus;
 import com.surnekev.ticketing.domain.Ticket;
 import com.surnekev.ticketing.domain.TicketStatus;
 import com.surnekev.ticketing.dto.CancelReservationRequest;
+import com.surnekev.ticketing.dto.CategoryQuantityRequest;
 import com.surnekev.ticketing.dto.CreateReservationRequest;
 import com.surnekev.ticketing.dto.ReservationCreatedEvent;
 import com.surnekev.ticketing.dto.ReservationResponse;
@@ -22,6 +23,7 @@ import com.surnekev.ticketing.websocket.SeatEventPublisher;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -55,16 +57,44 @@ public class ReservationService {
     @Value("${seatmap.hold-ttl-seconds:1800}")
     private long holdTtlSeconds;
 
+    private Set<Long> resolveSeatIds(CreateReservationRequest request, Long concertId) {
+        if (request.seatIds() != null && !request.seatIds().isEmpty()) {
+            return new HashSet<>(request.seatIds());
+        }
+        if (request.categoryQuantities() != null && !request.categoryQuantities().isEmpty()) {
+            Set<Long> result = new HashSet<>();
+            for (CategoryQuantityRequest cq : request.categoryQuantities()) {
+                if (cq.quantity() <= 0) continue;
+                List<Seat> available = seatRepository.findByConcertIdAndCategory_IdAndStatusOrderByIdAsc(
+                        concertId, cq.categoryId(), SeatStatus.AVAILABLE, PageRequest.of(0, cq.quantity()));
+                if (available.size() < cq.quantity()) {
+                    throw new IllegalStateException("Not enough available seats for category " + cq.categoryId()
+                            + ": requested " + cq.quantity() + ", available " + available.size());
+                }
+                available.stream().map(Seat::getId).forEach(result::add);
+            }
+            return result;
+        }
+        throw new IllegalArgumentException("Select at least one seat or category quantity");
+    }
+
     @Transactional
     public ReservationResponse createReservation(CreateReservationRequest request) {
-        if (request.seatIds().size() > 10) {
-            throw new IllegalArgumentException("Maximum of 10 seats per reservation");
+        if (!request.hasSeatSelection()) {
+            throw new IllegalArgumentException("Select at least one seat or category quantity");
+        }
+        if (!StringUtils.hasText(request.buyerPhone()) && !StringUtils.hasText(request.buyerEmail())) {
+            throw new IllegalArgumentException("Provide at least phone or email");
         }
 
         Concert concert = concertRepository.findById(request.concertId())
                 .orElseThrow(() -> new IllegalArgumentException("Concert not found"));
 
-        Set<Long> seatIds = new HashSet<>(request.seatIds());
+        Set<Long> seatIds = resolveSeatIds(request, concert.getId());
+        if (seatIds.size() > 10) {
+            throw new IllegalArgumentException("Maximum of 10 seats per reservation");
+        }
+
         Set<Seat> seats = new HashSet<>(seatRepository.findByIdIn(seatIds));
         if (seats.size() != seatIds.size()) {
             throw new IllegalArgumentException("One or more seats not found");

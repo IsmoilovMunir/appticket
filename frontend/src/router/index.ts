@@ -48,7 +48,10 @@ const router = createRouter({
       path: '/:slug',
       name: 'concert',
       component: ConcertPage,
-      props: true
+      props: true,
+      meta: {
+        key: (route: any) => route.params.slug // Уникальный ключ для каждого slug
+      }
     }
   ]
 });

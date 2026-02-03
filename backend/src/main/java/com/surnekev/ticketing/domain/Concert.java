@@ -49,6 +49,12 @@ public class Concert {
     @Column(name = "city")
     private String city;
 
+    @Column(name = "venue_lat")
+    private Double venueLat;
+
+    @Column(name = "venue_lon")
+    private Double venueLon;
+
     @Column(name = "currency")
     private String currency;
 
@@ -64,7 +70,18 @@ public class Concert {
     @Column(name = "sales_scheme_url", columnDefinition = "TEXT")
     private String salesSchemeUrl;
 
+    @Column(name = "simple_mode", nullable = false)
+    @Builder.Default
+    private boolean simpleMode = false;
+
     @Column(name = "created_at")
     private Instant createdAt;
+
+    /**
+     * Telegram Chat IDs менеджеров концерта (через запятую).
+     * Подписавшиеся получают уведомления о бронях и статусах этого концерта.
+     */
+    @Column(name = "telegram_manager_chat_ids", length = 500)
+    private String telegramManagerChatIds;
 }
 

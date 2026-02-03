@@ -8,6 +8,7 @@ import type {
   Ticket,
   TicketStatus,
   SeatCategorySummary,
+  SeatCategoryWithAvailability,
   SeatTableAssignment,
   AdminUser,
   BulkCreateSeatsRequest
@@ -26,18 +27,52 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
+// Interceptor для обработки истекших токенов
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      // Токен истек или недействителен - очищаем его
+      localStorage.removeItem('ticketing-token');
+      // Для админских эндпоинтов перенаправляем на страницу входа
+      if (error.config?.url?.startsWith('/admin')) {
+        window.location.href = '/admin';
+      }
+    }
+    return Promise.reject(error);
+  }
+);
+
+export const fetchConcertsList = async () => {
+  const { data } = await api.get<Concert[]>('/concerts');
+  return data;
+};
+
 export const fetchConcert = async (concertId: number) => {
   const { data } = await api.get<Concert>(`/concerts/${concertId}`);
   return data;
 };
 
 export const fetchConcertBySlug = async (slug: string) => {
-  const { data } = await api.get<Concert>(`/concerts/slug/${slug}`);
+  // Добавляем timestamp для предотвращения кеширования
+  const { data } = await api.get<Concert>(`/concerts/slug/${slug}`, {
+    params: { _t: Date.now() }
+  });
   return data;
 };
 
 export const fetchConcertCategories = async (concertId: number) => {
   const { data } = await api.get<SeatCategorySummary[]>(`/concerts/${concertId}/categories`);
+  return data;
+};
+
+export const fetchConcertCategoriesWithAvailability = async (concertId: number) => {
+  const { data } = await api.get<SeatCategoryWithAvailability[]>(`/concerts/${concertId}/categories-with-availability`);
+  return data;
+};
+
+export const fetchConcertCategoriesWithAvailabilityBySlug = async (slug: string) => {
+  const { data } = await api.get<SeatCategoryWithAvailability[]>(`/concerts/slug/${slug}/categories-with-availability`);
   return data;
 };
 
@@ -48,7 +83,8 @@ export const fetchSeats = async (concertId: number) => {
 
 export interface CreateReservationPayload {
   concertId: number;
-  seatIds: number[];
+  seatIds?: number[];
+  categoryQuantities?: Array<{ categoryId: number; quantity: number }>;
   buyerName: string;
   buyerPhone: string;
   buyerEmail: string;
@@ -145,6 +181,27 @@ export const overrideSeatPrice = async (payload: {
 
 export const bulkCreateSeats = async (payload: BulkCreateSeatsRequest) => {
   const { data } = await api.post<{ created: number; message: string }>('/admin/seat-config/seats/bulk-create', payload);
+  return data;
+};
+
+export interface SimpleCreateSeatsPayload {
+  concertId: number;
+  categories: Array<{ categoryId: number; quantity: number }>;
+}
+
+export const simpleCreateSeats = async (payload: SimpleCreateSeatsPayload) => {
+  const { data } = await api.post<{ created: number; message: string }>('/admin/seat-config/seats/simple-create', payload);
+  return data;
+};
+
+export interface AddCategorySeatsPayload {
+  concertId: number;
+  categoryId: number;
+  quantity: number;
+}
+
+export const addCategorySeats = async (payload: AddCategorySeatsPayload) => {
+  const { data } = await api.post<{ created: number; message: string }>('/admin/seat-config/seats/add-category', payload);
   return data;
 };
 

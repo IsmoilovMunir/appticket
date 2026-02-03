@@ -7,6 +7,7 @@ import com.surnekev.ticketing.domain.SeatStatus;
 import com.surnekev.ticketing.dto.ConcertDto;
 import com.surnekev.ticketing.dto.CreateConcertRequest;
 import com.surnekev.ticketing.dto.SeatCategoryDto;
+import com.surnekev.ticketing.dto.SeatCategoryWithAvailabilityDto;
 import com.surnekev.ticketing.dto.SeatDto;
 import com.surnekev.ticketing.dto.UpdateConcertRequest;
 import com.surnekev.ticketing.mapper.SeatMapper;
@@ -68,11 +69,15 @@ public class ConcertService {
                 .guestStartTime(request.guestStartTime())
                 .venue(request.venue())
                 .city(request.city())
+                .venueLat(request.venueLat())
+                .venueLon(request.venueLon())
                 .currency(request.currency())
                 .ageRestriction(request.ageRestriction())
                 .eventType(request.eventType())
                 .posterUrl(request.posterUrl())
                 .salesSchemeUrl(request.salesSchemeUrl())
+                .simpleMode(request.simpleMode() != null && request.simpleMode())
+                .telegramManagerChatIds(request.telegramManagerChatIds())
                 .createdAt(Instant.now())
                 .build();
 
@@ -100,11 +105,15 @@ public class ConcertService {
         if (request.guestStartTime() != null) concert.setGuestStartTime(request.guestStartTime());
         if (request.venue() != null) concert.setVenue(request.venue());
         if (request.city() != null) concert.setCity(request.city());
+        if (request.venueLat() != null) concert.setVenueLat(request.venueLat());
+        if (request.venueLon() != null) concert.setVenueLon(request.venueLon());
         if (request.currency() != null) concert.setCurrency(request.currency());
         if (request.ageRestriction() != null) concert.setAgeRestriction(request.ageRestriction());
         if (request.eventType() != null) concert.setEventType(request.eventType());
         if (request.posterUrl() != null) concert.setPosterUrl(request.posterUrl());
         if (request.salesSchemeUrl() != null) concert.setSalesSchemeUrl(request.salesSchemeUrl());
+        if (request.simpleMode() != null) concert.setSimpleMode(request.simpleMode());
+        if (request.telegramManagerChatIds() != null) concert.setTelegramManagerChatIds(request.telegramManagerChatIds());
 
         concert = concertRepository.save(concert);
         return toDto(concert);
@@ -141,12 +150,16 @@ public class ConcertService {
                 concert.getGuestStartTime(),
                 concert.getVenue(),
                 concert.getCity(),
+                concert.getVenueLat(),
+                concert.getVenueLon(),
                 concert.getCurrency(),
                 concert.getAgeRestriction(),
                 concert.getEventType(),
                 concert.getPosterUrl(),
                 concert.getSalesSchemeUrl(),
-                minPriceCents
+                minPriceCents,
+                concert.isSimpleMode(),
+                concert.getTelegramManagerChatIds()
         );
     }
 
@@ -195,6 +208,37 @@ public class ConcertService {
                     );
                 })
                 .sorted(Comparator.comparingInt(SeatCategoryDto::priceCents))
+                .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    public List<SeatCategoryWithAvailabilityDto> listCategoriesWithAvailability(Long concertId) {
+        List<Seat> seats = seatRepository.findAllByConcertId(concertId);
+        Map<SeatCategory, Integer> availableByCategory = seats.stream()
+                .filter(seat -> seat.getCategory() != null && seat.getStatus() == SeatStatus.AVAILABLE)
+                .collect(Collectors.groupingBy(Seat::getCategory, Collectors.summingInt(s -> 1)));
+        Map<SeatCategory, Integer> minPriceByCategory = seats.stream()
+                .filter(seat -> seat.getCategory() != null)
+                .collect(Collectors.toMap(
+                        Seat::getCategory,
+                        seat -> seat.getPriceOverrideCents() != null
+                                ? seat.getPriceOverrideCents()
+                                : seat.getCategory().getPriceCents(),
+                        Math::min));
+        return availableByCategory.entrySet().stream()
+                .map(entry -> {
+                    SeatCategory cat = entry.getKey();
+                    int price = minPriceByCategory.getOrDefault(cat, cat.getPriceCents());
+                    return new SeatCategoryWithAvailabilityDto(
+                            cat.getId(),
+                            cat.getName(),
+                            price,
+                            cat.getDescription(),
+                            cat.getColorHex(),
+                            entry.getValue()
+                    );
+                })
+                .sorted(Comparator.comparingInt(SeatCategoryWithAvailabilityDto::priceCents))
                 .collect(Collectors.toList());
     }
 }

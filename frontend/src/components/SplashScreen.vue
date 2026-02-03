@@ -495,7 +495,7 @@ onUnmounted(() => {
 .btn-buy {
   width: 100%;
   padding: 16px 28px;
-  background: #18723F;
+  background: #1a1a1a;
   color: #ffffff;
   border: none;
   border-radius: 12px;
@@ -503,18 +503,17 @@ onUnmounted(() => {
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
-  box-shadow: 0 4px 12px rgba(24, 114, 63, 0.3);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
   margin-top: 4px;
 }
 
-.btn-buy:hover {
-  background: #145a32;
+.btn-buy:hover,
+.btn-buy:active,
+.btn-buy:focus {
+  background: #DBFF06;
+  color: #000;
   transform: translateY(-2px);
-  box-shadow: 0 6px 16px rgba(24, 114, 63, 0.4);
-}
-
-.btn-buy:active {
-  transform: translateY(0);
+  box-shadow: 0 6px 16px rgba(219, 255, 6, 0.4);
 }
 
 /* Мобильная адаптация */

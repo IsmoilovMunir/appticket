@@ -41,7 +41,7 @@ public class TelegramLog {
     private Direction direction;
 
     @JdbcTypeCode(SqlTypes.JSON)
-    @Column(columnDefinition = "jsonb")
+    @Column(columnDefinition = "CLOB")
     private JsonNode payload;
 
     @Column(name = "created_at")

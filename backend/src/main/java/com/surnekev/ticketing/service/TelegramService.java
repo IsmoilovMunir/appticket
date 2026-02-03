@@ -21,12 +21,16 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
+import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 
 import java.time.Instant;
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -44,19 +48,25 @@ public class TelegramService {
     @Value("${telegram.manager-chat-id:}")
     private String managerChatId;
 
+    @Value("${telegram.enabled:true}")
+    private boolean telegramEnabled;
+
     public void notifyReservationHold(Reservation reservation) {
         if (!isConfigured()) {
             log.debug("Telegram bot token or chat id not configured, skipping notification");
             return;
         }
 
-        Map<String, Object> payload = new HashMap<>();
-        payload.put("chat_id", managerChatId);
-        payload.put("text", buildReservationText("Новая бронь", reservation));
-        payload.put("parse_mode", "HTML");
-        payload.put("reply_markup", buildInlineKeyboard(reservation));
-
-        sendRequest("sendMessage", payload, reservation.getId(), TelegramLog.Direction.OUTBOUND);
+        String text = buildReservationText("Новая бронь", reservation);
+        Object replyMarkup = buildInlineKeyboard(reservation);
+        for (String chatId : getChatIdsForConcert(reservation.getConcert())) {
+            Map<String, Object> payload = new HashMap<>();
+            payload.put("chat_id", chatId);
+            payload.put("text", text);
+            payload.put("parse_mode", "HTML");
+            payload.put("reply_markup", replyMarkup);
+            sendRequest("sendMessage", payload, reservation.getId(), TelegramLog.Direction.OUTBOUND);
+        }
     }
 
     public void notifyReservationStatus(Reservation reservation) {
@@ -64,13 +74,32 @@ public class TelegramService {
             return;
         }
 
-        Map<String, Object> payload = new HashMap<>();
-        payload.put("chat_id", managerChatId);
         String statusText = translateStatus(reservation.getStatus());
-        payload.put("text", buildReservationText("Статус обновлён: " + statusText, reservation));
-        payload.put("parse_mode", "HTML");
+        String text = buildReservationText("Статус обновлён: " + statusText, reservation);
+        for (String chatId : getChatIdsForConcert(reservation.getConcert())) {
+            Map<String, Object> payload = new HashMap<>();
+            payload.put("chat_id", chatId);
+            payload.put("text", text);
+            payload.put("parse_mode", "HTML");
+            sendRequest("sendMessage", payload, reservation.getId(), TelegramLog.Direction.OUTBOUND);
+        }
+    }
 
-        sendRequest("sendMessage", payload, reservation.getId(), TelegramLog.Direction.OUTBOUND);
+    /**
+     * Возвращает все chat_id для уведомлений: глобальный + привязанные к концерту.
+     */
+    private Set<String> getChatIdsForConcert(com.surnekev.ticketing.domain.Concert concert) {
+        Set<String> ids = new HashSet<>();
+        if (StringUtils.hasText(managerChatId)) {
+            ids.add(managerChatId.trim());
+        }
+        if (concert != null && StringUtils.hasText(concert.getTelegramManagerChatIds())) {
+            Arrays.stream(concert.getTelegramManagerChatIds().split(","))
+                    .map(String::trim)
+                    .filter(StringUtils::hasText)
+                    .forEach(ids::add);
+        }
+        return ids;
     }
 
     private void sendRequest(String method,
@@ -94,27 +123,31 @@ public class TelegramService {
         if (!isConfigured()) {
             return;
         }
-        try {
-            MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
-            body.add("chat_id", managerChatId);
-            body.add("caption", "Билет подтверждён: " + ticket.getId());
-            body.add("photo", new ByteArrayResource(qrBytes) {
-                @Override
-                public String getFilename() {
-                    return "ticket-" + ticket.getId() + ".png";
-                }
-            });
-            HttpHeaders headers = new HttpHeaders();
-            headers.setContentType(MediaType.MULTIPART_FORM_DATA);
-            persistLog(TelegramLog.Direction.OUTBOUND, Map.of(
-                    "method", "sendPhoto",
-                    "ticketId", ticket.getId()
-            ));
-            ResponseEntity<String> response = restTemplate.postForEntity(
-                    apiUrl("sendPhoto"), new HttpEntity<>(body, headers), String.class);
-            persistLog(TelegramLog.Direction.INBOUND, response.getBody());
-        } catch (Exception ex) {
-            log.error("Failed to send ticket QR {}", ticket.getId(), ex);
+        Set<String> chatIds = getChatIdsForConcert(
+                ticket.getReservation() != null ? ticket.getReservation().getConcert() : null);
+        for (String chatId : chatIds) {
+            try {
+                MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
+                body.add("chat_id", chatId);
+                body.add("caption", "Билет подтверждён: " + ticket.getId());
+                body.add("photo", new ByteArrayResource(qrBytes) {
+                    @Override
+                    public String getFilename() {
+                        return "ticket-" + ticket.getId() + ".png";
+                    }
+                });
+                HttpHeaders headers = new HttpHeaders();
+                headers.setContentType(MediaType.MULTIPART_FORM_DATA);
+                persistLog(TelegramLog.Direction.OUTBOUND, Map.of(
+                        "method", "sendPhoto",
+                        "ticketId", ticket.getId()
+                ));
+                ResponseEntity<String> response = restTemplate.postForEntity(
+                        apiUrl("sendPhoto"), new HttpEntity<>(body, headers), String.class);
+                persistLog(TelegramLog.Direction.INBOUND, response.getBody());
+            } catch (Exception ex) {
+                log.error("Failed to send ticket QR {} to chat {}", ticket.getId(), chatId, ex);
+            }
         }
     }
 
@@ -122,27 +155,31 @@ public class TelegramService {
         if (!isConfigured()) {
             return;
         }
-        try {
-            MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
-            body.add("chat_id", managerChatId);
-            body.add("caption", "PDF билет: " + ticket.getId());
-            body.add("document", new ByteArrayResource(pdfBytes) {
-                @Override
-                public String getFilename() {
-                    return "ticket-" + ticket.getId() + ".pdf";
-                }
-            });
-            HttpHeaders headers = new HttpHeaders();
-            headers.setContentType(MediaType.MULTIPART_FORM_DATA);
-            persistLog(TelegramLog.Direction.OUTBOUND, Map.of(
-                    "method", "sendDocument",
-                    "ticketId", ticket.getId()
-            ));
-            ResponseEntity<String> response = restTemplate.postForEntity(
-                    apiUrl("sendDocument"), new HttpEntity<>(body, headers), String.class);
-            persistLog(TelegramLog.Direction.INBOUND, response.getBody());
-        } catch (Exception ex) {
-            log.error("Failed to send ticket PDF {}", ticket.getId(), ex);
+        Set<String> chatIds = getChatIdsForConcert(
+                ticket.getReservation() != null ? ticket.getReservation().getConcert() : null);
+        for (String chatId : chatIds) {
+            try {
+                MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
+                body.add("chat_id", chatId);
+                body.add("caption", "PDF билет: " + ticket.getId());
+                body.add("document", new ByteArrayResource(pdfBytes) {
+                    @Override
+                    public String getFilename() {
+                        return "ticket-" + ticket.getId() + ".pdf";
+                    }
+                });
+                HttpHeaders headers = new HttpHeaders();
+                headers.setContentType(MediaType.MULTIPART_FORM_DATA);
+                persistLog(TelegramLog.Direction.OUTBOUND, Map.of(
+                        "method", "sendDocument",
+                        "ticketId", ticket.getId()
+                ));
+                ResponseEntity<String> response = restTemplate.postForEntity(
+                        apiUrl("sendDocument"), new HttpEntity<>(body, headers), String.class);
+                persistLog(TelegramLog.Direction.INBOUND, response.getBody());
+            } catch (Exception ex) {
+                log.error("Failed to send ticket PDF {} to chat {}", ticket.getId(), chatId, ex);
+            }
         }
     }
 
@@ -200,8 +237,8 @@ public class TelegramService {
     }
 
     public void sendVerificationCode(String username, String verificationCode) {
-        if (!isConfigured()) {
-            log.warn("Telegram bot not configured, cannot send verification code");
+        if (!isConfigured() || !StringUtils.hasText(managerChatId)) {
+            log.warn("Telegram bot or manager chat id not configured, cannot send verification code");
             return;
         }
 
@@ -238,8 +275,8 @@ public class TelegramService {
     }
 
     public void sendAdminCredentials(String username, String password) {
-        if (!isConfigured()) {
-            log.warn("Telegram bot not configured, cannot send admin credentials");
+        if (!isConfigured() || !StringUtils.hasText(managerChatId)) {
+            log.warn("Telegram bot or manager chat id not configured, cannot send admin credentials");
             return;
         }
 
@@ -271,15 +308,21 @@ public class TelegramService {
             } else {
                 log.info("Admin credentials sent to Telegram successfully");
             }
+        } catch (HttpClientErrorException ex) {
+            String msg = ex.getResponseBodyAsString();
+            if (msg != null && msg.contains("chat not found")) {
+                log.warn("Telegram: chat not found (TELEGRAM_CHAT_ID={}). Напишите боту /start и укажите полученный Chat ID в настройках.", managerChatId);
+            } else {
+                log.error("Failed to send admin credentials to Telegram: {}", msg != null ? msg : ex.getMessage());
+            }
         } catch (Exception ex) {
             log.error("Failed to send admin credentials to Telegram", ex);
-            // Не бросаем исключение, чтобы не блокировать создание админа
         }
     }
 
     public void sendPartnerRequest(String fullName, String company, String phone, String email) {
-        if (!isConfigured()) {
-            log.warn("Telegram bot not configured, cannot send partner request");
+        if (!isConfigured() || !StringUtils.hasText(managerChatId)) {
+            log.warn("Telegram bot or manager chat id not configured, cannot send partner request");
             return;
         }
 
@@ -324,8 +367,45 @@ public class TelegramService {
         }
     }
 
+    /**
+     * Подтверждает получение callback_query (убирает индикатор загрузки на кнопке).
+     */
+    public void answerCallbackQuery(String callbackQueryId) {
+        if (!isConfigured() || !StringUtils.hasText(callbackQueryId)) {
+            return;
+        }
+        try {
+            Map<String, Object> payload = new HashMap<>();
+            payload.put("callback_query_id", callbackQueryId);
+            restTemplate.postForEntity(apiUrl("answerCallbackQuery"), payload, String.class);
+        } catch (Exception ex) {
+            log.debug("Failed to answer callback query {}", callbackQueryId, ex);
+        }
+    }
+
+    /**
+     * Отправляет сообщение в указанный чат (для ответа на команды бота).
+     */
+    public void sendMessageToChat(String chatId, String text) {
+        if (!isConfigured() || !StringUtils.hasText(chatId)) {
+            return;
+        }
+        try {
+            Map<String, Object> payload = new HashMap<>();
+            payload.put("chat_id", chatId);
+            payload.put("text", text);
+            payload.put("parse_mode", "HTML");
+            persistLog(TelegramLog.Direction.OUTBOUND, payload);
+            ResponseEntity<TelegramMessageResponse> response = restTemplate.postForEntity(
+                    apiUrl("sendMessage"), payload, TelegramMessageResponse.class);
+            persistLog(TelegramLog.Direction.INBOUND, response.getBody());
+        } catch (Exception ex) {
+            log.error("Failed to send message to chat {}", chatId, ex);
+        }
+    }
+
     private boolean isConfigured() {
-        return StringUtils.hasText(botToken) && StringUtils.hasText(managerChatId);
+        return telegramEnabled && StringUtils.hasText(botToken);
     }
 
     private void persistLog(TelegramLog.Direction direction, Object payload) {

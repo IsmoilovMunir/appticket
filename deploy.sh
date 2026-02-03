@@ -1,6 +1,8 @@
 #!/bin/bash
 
 # Скрипт для быстрого деплоя проекта
+# Локально: использует nginx.conf.local
+# Production: используйте infrastructure/deploy-production.sh
 
 set -e
 
@@ -10,26 +12,26 @@ echo "🚀 Начало деплоя проекта..."
 if ! docker info > /dev/null 2>&1; then
     echo "❌ Docker daemon не запущен!"
     echo "📝 Пожалуйста, запустите Docker Desktop и попробуйте снова"
-    echo "   На macOS: откройте приложение Docker Desktop из Applications"
-    exit 1
-fi
-
-# Проверка наличия .env файла
-if [ ! -f .env ]; then
-    echo "⚠️  Файл .env не найден!"
-    echo "📝 Создайте файл .env на основе .env.example"
-    echo "   cp .env.example .env"
-    echo "   Затем отредактируйте .env и заполните все переменные"
     exit 1
 fi
 
 # Переход в директорию infrastructure
-cd infrastructure || exit 1
+cd "$(dirname "$0")/infrastructure" || exit 1
+
+# Проверка .env (для production — в infrastructure)
+if [ ! -f .env ]; then
+    echo "⚠️  Файл .env не найден в infrastructure/"
+    echo "   cp env.example .env"
+    echo "   Отредактируйте .env (обязательно: DB_PASSWORD, JWT_SECRET)"
+    echo ""
+    echo "   Для production: ./infrastructure/deploy-production.sh"
+    exit 1
+fi
 
 echo "📦 Остановка существующих контейнеров..."
 docker compose down
 
-echo "🔨 Сборка и запуск контейнеров..."
+echo "🔨 Сборка и запуск контейнеров (локальный режим)..."
 docker compose up -d --build
 
 echo "⏳ Ожидание запуска сервисов..."

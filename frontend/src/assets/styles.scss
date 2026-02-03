@@ -94,14 +94,84 @@ table {
   background-color: #18723F !important;
 }
 
-.btn-primary {
-  background-color: #18723F !important;
-  border-color: #18723F !important;
+/* Единый стиль всех кнопок: тёмный фон, при наведении — #DBFF06 */
+.btn-primary,
+.btn-success,
+.btn-danger,
+.btn-warning,
+.btn-info {
+  background-color: #1a1a1a !important;
+  border-color: #1a1a1a !important;
+  color: #fff !important;
 }
 
-.btn-primary:hover {
-  background-color: #145a32 !important;
-  border-color: #145a32 !important;
+.btn-primary:hover:not(:disabled),
+.btn-primary:active:not(:disabled),
+.btn-primary:focus:not(:disabled),
+.btn-success:hover:not(:disabled),
+.btn-success:active:not(:disabled),
+.btn-success:focus:not(:disabled),
+.btn-danger:hover:not(:disabled),
+.btn-danger:active:not(:disabled),
+.btn-danger:focus:not(:disabled),
+.btn-warning:hover:not(:disabled),
+.btn-warning:active:not(:disabled),
+.btn-warning:focus:not(:disabled),
+.btn-info:hover:not(:disabled),
+.btn-info:active:not(:disabled),
+.btn-info:focus:not(:disabled) {
+  background-color: #DBFF06 !important;
+  border-color: #DBFF06 !important;
+  color: #000 !important;
+}
+
+/* Outline кнопки — при наведении тот же акцент */
+.btn-outline-primary,
+.btn-outline-secondary,
+.btn-outline-success,
+.btn-outline-danger,
+.btn-outline-warning,
+.btn-outline-info,
+.btn-outline-light {
+  background-color: transparent !important;
+  border-color: #1a1a1a !important;
+  color: #1a1a1a !important;
+}
+
+.btn-outline-light {
+  border-color: rgba(255, 255, 255, 0.9) !important;
+  color: rgba(255, 255, 255, 0.9) !important;
+}
+
+.btn-outline-primary:hover:not(:disabled),
+.btn-outline-primary:active:not(:disabled),
+.btn-outline-primary:focus:not(:disabled),
+.btn-outline-secondary:hover:not(:disabled),
+.btn-outline-secondary:active:not(:disabled),
+.btn-outline-secondary:focus:not(:disabled),
+.btn-outline-success:hover:not(:disabled),
+.btn-outline-success:active:not(:disabled),
+.btn-outline-success:focus:not(:disabled),
+.btn-outline-danger:hover:not(:disabled),
+.btn-outline-danger:active:not(:disabled),
+.btn-outline-danger:focus:not(:disabled),
+.btn-outline-warning:hover:not(:disabled),
+.btn-outline-warning:active:not(:disabled),
+.btn-outline-warning:focus:not(:disabled),
+.btn-outline-info:hover:not(:disabled),
+.btn-outline-info:active:not(:disabled),
+.btn-outline-info:focus:not(:disabled) {
+  background-color: #DBFF06 !important;
+  border-color: #DBFF06 !important;
+  color: #000 !important;
+}
+
+.btn-outline-light:hover:not(:disabled),
+.btn-outline-light:active:not(:disabled),
+.btn-outline-light:focus:not(:disabled) {
+  background-color: #DBFF06 !important;
+  border-color: #DBFF06 !important;
+  color: #000 !important;
 }
 
 .text-primary {
@@ -331,8 +401,9 @@ table {
 }
 
 .zoom-btn {
-  border: 1px solid rgba(0, 0, 0, 0.15);
-  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid #1a1a1a;
+  background: #1a1a1a;
+  color: #fff;
   width: 32px;
   height: 32px;
   border-radius: 8px;
@@ -342,7 +413,15 @@ table {
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: background 0.2s ease;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.zoom-btn:hover:not(:disabled),
+.zoom-btn:active:not(:disabled),
+.zoom-btn:focus:not(:disabled) {
+  background: #DBFF06;
+  border-color: #DBFF06;
+  color: #000;
 }
 
 .zoom-btn.reset {
@@ -362,6 +441,20 @@ table {
   font-weight: 600;
 }
 
+/* Общий стиль для кнопок "Купить" — при наведении/нажатии: фон #DBFF06, текст чёрный */
+.btn-buy-accent {
+  background: #1a1a1a !important;
+  border-color: #1a1a1a !important;
+}
+
+.btn-buy-accent:hover:not(:disabled),
+.btn-buy-accent:active:not(:disabled),
+.btn-buy-accent:focus:not(:disabled) {
+  background: #DBFF06 !important;
+  border-color: #DBFF06 !important;
+  color: #000 !important;
+}
+
 .buy-button-toolbar {
   position: fixed;
   bottom: 80px;
@@ -375,8 +468,8 @@ table {
 }
 
 .buy-btn-toolbar {
-  border: 1px solid #1f9d6c;
-  background: #1f9d6c;
+  border: 1px solid #1a1a1a;
+  background: #1a1a1a;
   color: white;
   padding: 8px 16px;
   border-radius: 20px;
@@ -387,19 +480,18 @@ table {
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: background 0.2s ease, transform 0.1s ease, box-shadow 0.2s ease;
-  box-shadow: 0 4px 12px rgba(31, 157, 108, 0.4), 0 2px 4px rgba(0, 0, 0, 0.1);
+  transition: background 0.2s ease, color 0.2s ease, transform 0.1s ease, box-shadow 0.2s ease;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 }
 
-.buy-btn-toolbar:hover:not(:disabled) {
-  background: #1a8a5d;
-  border-color: #1a8a5d;
+.buy-btn-toolbar:hover:not(:disabled),
+.buy-btn-toolbar:active:not(:disabled),
+.buy-btn-toolbar:focus:not(:disabled) {
+  background: #DBFF06;
+  border-color: #DBFF06;
+  color: #000;
   transform: translateY(-1px);
-  box-shadow: 0 6px 16px rgba(31, 157, 108, 0.5), 0 3px 6px rgba(0, 0, 0, 0.15);
-}
-
-.buy-btn-toolbar:active:not(:disabled) {
-  transform: translateY(0);
+  box-shadow: 0 6px 16px rgba(219, 255, 6, 0.4);
 }
 
 .buy-btn-toolbar:disabled {

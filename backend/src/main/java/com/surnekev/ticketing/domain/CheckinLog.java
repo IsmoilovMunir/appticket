@@ -45,7 +45,7 @@ public class CheckinLog {
     private String operator;
 
     @JdbcTypeCode(SqlTypes.JSON)
-    @Column(columnDefinition = "jsonb")
+    @Column(columnDefinition = "CLOB")
     private JsonNode metadata;
 
     @Column(name = "created_at")

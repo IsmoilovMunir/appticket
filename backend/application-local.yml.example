@@ -1,9 +1,15 @@
 # Конфигурация для локального запуска приложения
-# Скопируйте этот файл в application-local.yml и настройте под свои нужды
-# Или создайте файл .env в папке backend/ с этими переменными
+# Скопируйте в backend/src/main/resources/application-local.yml
+# Или установите переменные окружения перед запуском
 
-# Для использования создайте файл .env в папке backend/ или установите переменные окружения:
-# 
+# Почта Timeweb (для локальной разработки с отправкой писем):
+# spring:
+#   mail:
+#     username: info@appticket.ru
+#     password: ваш_пароль
+#
+# Или в терминале: export MAIL_PASSWORD=ваш_пароль
+
 # DB_URL=jdbc:postgresql://localhost:15432/tickets
 # DB_USERNAME=ticket
 # DB_PASSWORD=ваш_пароль

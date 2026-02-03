@@ -2,6 +2,7 @@ package com.surnekev.ticketing.web;
 
 import com.surnekev.ticketing.dto.ConcertDto;
 import com.surnekev.ticketing.dto.SeatCategoryDto;
+import com.surnekev.ticketing.dto.SeatCategoryWithAvailabilityDto;
 import com.surnekev.ticketing.dto.SeatDto;
 import com.surnekev.ticketing.service.ConcertService;
 import lombok.RequiredArgsConstructor;
@@ -18,6 +19,11 @@ import java.util.List;
 public class ConcertController {
 
     private final ConcertService concertService;
+
+    @GetMapping
+    public List<ConcertDto> getAllConcerts() {
+        return concertService.getAllConcerts();
+    }
 
     @GetMapping("/{id}")
     public ConcertDto getConcert(@PathVariable Long id) {
@@ -45,10 +51,21 @@ public class ConcertController {
         return concertService.listCategories(id);
     }
 
+    @GetMapping("/{id}/categories-with-availability")
+    public List<SeatCategoryWithAvailabilityDto> getCategoriesWithAvailability(@PathVariable Long id) {
+        return concertService.listCategoriesWithAvailability(id);
+    }
+
     @GetMapping("/slug/{slug}/categories")
     public List<SeatCategoryDto> getCategoriesBySlug(@PathVariable String slug) {
         ConcertDto concert = concertService.getConcertBySlug(slug);
         return concertService.listCategories(concert.id());
+    }
+
+    @GetMapping("/slug/{slug}/categories-with-availability")
+    public List<SeatCategoryWithAvailabilityDto> getCategoriesWithAvailabilityBySlug(@PathVariable String slug) {
+        ConcertDto concert = concertService.getConcertBySlug(slug);
+        return concertService.listCategoriesWithAvailability(concert.id());
     }
 }
 

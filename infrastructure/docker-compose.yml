@@ -1,12 +1,11 @@
 services:
   postgres:
     image: postgres:16
-    container_name: surnekevents-postgres
+    container_name: apptickit-postgres
     environment:
-      # Основные настройки базы данных
       POSTGRES_DB: ${POSTGRES_DB:-tickets}
       POSTGRES_USER: ${DB_USERNAME:-ticket}
-      POSTGRES_PASSWORD: ticket
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
       # Настройки для надежности
       POSTGRES_INITDB_ARGS: "-E UTF8"
       PGDATA: /var/lib/postgresql/data/pgdata
@@ -59,9 +58,10 @@ services:
       context: ..
       dockerfile: infrastructure/backend.Dockerfile
     environment:
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-prod}
       DB_URL: jdbc:postgresql://postgres:5432/tickets
-      DB_USERNAME: ticket
-      DB_PASSWORD: ticket
+      DB_USERNAME: ${DB_USERNAME:-ticket}
+      DB_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
       REDIS_HOST: ${REDIS_HOST:-redis}
       REDIS_PORT: ${REDIS_PORT:-6379}
       REDIS_PASSWORD: ${REDIS_PASSWORD:-}
@@ -70,7 +70,9 @@ services:
       ADMIN_DEFAULT_PASSWORD: ${ADMIN_DEFAULT_PASSWORD:-12345}
       TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
       TELEGRAM_CHAT_ID: ${TELEGRAM_CHAT_ID:-}
-      MAIL_FROM: ${MAIL_FROM:-info@surnekevents.ru}
+      MAIL_FROM: ${MAIL_FROM:-info@appticket.ru}
+      MAIL_USERNAME: ${MAIL_USERNAME:-info@appticket.ru}
+      MAIL_PASSWORD: ${MAIL_PASSWORD}
     depends_on:
       postgres:
         condition: service_healthy
@@ -93,14 +95,14 @@ services:
   nginx:
     image: nginx:1.27
     volumes:
-      - ./nginx.conf.local:/etc/nginx/conf.d/default.conf:ro
+      - ./${NGINX_CONF:-nginx.conf.local}:/etc/nginx/conf.d/default.conf:ro
       - ./ssl:/etc/nginx/ssl:ro
     ports:
       - "80:80"
       - "443:443"
     depends_on:
       - frontend
-      # backend запущен локально, поэтому убираем зависимость
+      - backend
     restart: unless-stopped
     extra_hosts:
       - "host.docker.internal:host-gateway"

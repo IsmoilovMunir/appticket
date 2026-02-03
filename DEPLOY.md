@@ -11,8 +11,8 @@
 ### 2. Клонирование репозитория на сервер
 
 ```bash
-git clone <ваш-репозиторий-url> surnekev
-cd surnekev
+git clone <ваш-репозиторий-url> apptickit
+cd apptickit
 ```
 
 ### 3. Настройка переменных окружения
@@ -42,7 +42,7 @@ TELEGRAM_BOT_TOKEN=<токен-бота>
 TELEGRAM_CHAT_ID=<chat-id-менеджера>
 
 # Email
-MAIL_FROM=info@surnekevents.ru
+MAIL_FROM=info@appticket.ru
 ```
 
 ### 4. Обновление docker-compose.yml

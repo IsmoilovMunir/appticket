@@ -66,7 +66,7 @@
                 </label>
               </div>
               <button
-                class="btn btn-primary w-100 btn-sm"
+                class="btn btn-primary w-100 btn-sm btn-buy-accent"
                 :disabled="(selectedSeats.length === 0 && seatStore.danceFloorQuantity === 0) || reservationLoading || !consentToProcessing"
                 @click="submitReservation"
               >
@@ -936,7 +936,7 @@ const getTicketText = (count: number): string => {
   padding: 0.8rem 1rem;
   border-radius: 12px;
   border: none;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: #1a1a1a;
   color: white;
   font-weight: 700;
   font-size: 0.9rem;
@@ -946,20 +946,23 @@ const getTicketText = (count: number): string => {
   align-items: center;
   justify-content: center;
   gap: 0.4rem;
-  box-shadow: 0 4px 16px rgba(102, 126, 234, 0.3);
-  order: -1; /* Делаем эту кнопку первой */
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  order: -1;
 }
 
-.btn-add:hover:not(:disabled) {
+.btn-add:hover:not(:disabled),
+.btn-add:active:not(:disabled),
+.btn-add:focus:not(:disabled) {
+  background: #DBFF06;
+  color: #000;
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+  box-shadow: 0 6px 16px rgba(219, 255, 6, 0.4);
 }
 
 .btn-add:disabled {
   opacity: 0.6;
   cursor: not-allowed;
   transform: none;
-  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.2);
 }
 
 .btn-add i {
@@ -980,20 +983,23 @@ const getTicketText = (count: number): string => {
   flex: 1;
   padding: 0.7rem 1rem;
   border-radius: 10px;
-  border: 2px solid #e9ecef;
-  background: white;
-  color: #6c757d;
+  border: 2px solid #1a1a1a;
+  background: transparent;
+  color: #1a1a1a;
   font-weight: 600;
   font-size: 0.9rem;
   cursor: pointer;
   transition: all 0.2s ease;
 }
 
-.btn-cancel:hover {
-  border-color: #adb5bd;
-  background: #f8f9fa;
+.btn-cancel:hover,
+.btn-cancel:active,
+.btn-cancel:focus {
+  background: #DBFF06;
+  border-color: #DBFF06;
+  color: #000;
   transform: translateY(-1px);
-  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 3px 10px rgba(219, 255, 6, 0.3);
 }
 
 /* Адаптивность */

@@ -1,5 +1,6 @@
 package com.surnekev.ticketing.web;
 
+import com.surnekev.ticketing.dto.AddCategorySeatsRequest;
 import com.surnekev.ticketing.dto.AssignSeatCategoryRequest;
 import com.surnekev.ticketing.dto.BulkCreateSeatsRequest;
 import com.surnekev.ticketing.dto.CreateSeatCategoryRequest;
@@ -7,6 +8,7 @@ import com.surnekev.ticketing.dto.SeatCategoryDto;
 import com.surnekev.ticketing.dto.SeatCategoryUpdateRequest;
 import com.surnekev.ticketing.dto.SeatPriceOverrideRequest;
 import com.surnekev.ticketing.dto.SeatTableAssignmentDto;
+import com.surnekev.ticketing.dto.SimpleCreateSeatsRequest;
 import com.surnekev.ticketing.service.SeatAdminService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -70,6 +72,24 @@ public class SeatAdminController {
         int createdCount = seatAdminService.bulkCreateSeats(request);
         return ResponseEntity.ok(
                 Map.of("created", createdCount, "message", "Seats created successfully")
+        );
+    }
+
+    @PostMapping("/seats/simple-create")
+    public ResponseEntity<Map<String, Object>> simpleCreateSeats(
+            @RequestBody @Valid SimpleCreateSeatsRequest request) {
+        int createdCount = seatAdminService.simpleCreateSeats(request);
+        return ResponseEntity.ok(
+                Map.of("created", createdCount, "message", "Seats created successfully")
+        );
+    }
+
+    @PostMapping("/seats/add-category")
+    public ResponseEntity<Map<String, Object>> addCategorySeats(
+            @RequestBody @Valid AddCategorySeatsRequest request) {
+        int createdCount = seatAdminService.addCategorySeats(request);
+        return ResponseEntity.ok(
+                Map.of("created", createdCount, "message", "Seats added successfully")
         );
     }
 

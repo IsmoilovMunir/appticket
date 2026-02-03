@@ -38,8 +38,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 String username = claims.getSubject();
                 UserDetails userDetails = adminUserService.loadUserByUsername(username);
                 
-                // Логируем роли для отладки
-                log.info("Authenticating user: {} with roles: {}", username, 
+                log.debug("Authenticating user: {} with roles: {}", username,
                     userDetails.getAuthorities().stream()
                         .map(auth -> auth.getAuthority())
                         .toList());

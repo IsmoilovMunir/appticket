@@ -4,6 +4,7 @@ import com.surnekev.ticketing.domain.Concert;
 import com.surnekev.ticketing.domain.Seat;
 import com.surnekev.ticketing.domain.SeatCategory;
 import com.surnekev.ticketing.domain.SeatStatus;
+import com.surnekev.ticketing.dto.AddCategorySeatsRequest;
 import com.surnekev.ticketing.dto.AssignSeatCategoryRequest;
 import com.surnekev.ticketing.dto.BulkCreateSeatsRequest;
 import com.surnekev.ticketing.dto.CreateSeatCategoryRequest;
@@ -11,6 +12,7 @@ import com.surnekev.ticketing.dto.SeatCategoryDto;
 import com.surnekev.ticketing.dto.SeatCategoryUpdateRequest;
 import com.surnekev.ticketing.dto.SeatPriceOverrideRequest;
 import com.surnekev.ticketing.dto.SeatTableAssignmentDto;
+import com.surnekev.ticketing.dto.SimpleCreateSeatsRequest;
 import com.surnekev.ticketing.repository.ConcertRepository;
 import com.surnekev.ticketing.repository.SeatCategoryRepository;
 import com.surnekev.ticketing.repository.SeatRepository;
@@ -161,6 +163,8 @@ public class SeatAdminService {
         // Удаляем существующие места для этого концерта, если они есть
         List<Seat> existingSeats = seatRepository.findAllByConcertId(request.concertId());
         if (!existingSeats.isEmpty()) {
+            List<Long> seatIds = existingSeats.stream().map(Seat::getId).toList();
+            seatRepository.deleteReservationSeatsBySeatIds(seatIds);
             seatRepository.deleteAll(existingSeats);
             seatRepository.flush();
         }
@@ -177,6 +181,80 @@ public class SeatAdminService {
                         .build();
                 newSeats.add(seat);
             }
+        }
+
+        seatRepository.saveAll(newSeats);
+        return newSeats.size();
+    }
+
+    @Transactional
+    public int simpleCreateSeats(SimpleCreateSeatsRequest request) {
+        Concert concert = concertRepository.findById(request.concertId())
+                .orElseThrow(() -> new IllegalArgumentException("Concert not found"));
+
+        List<Seat> existingSeats = seatRepository.findAllByConcertId(request.concertId());
+        if (!existingSeats.isEmpty()) {
+            List<Long> seatIds = existingSeats.stream().map(Seat::getId).toList();
+            seatRepository.deleteReservationSeatsBySeatIds(seatIds);
+            seatRepository.deleteAll(existingSeats);
+            seatRepository.flush();
+        }
+
+        List<Seat> newSeats = new ArrayList<>();
+        int tableIndex = 0;
+        for (SimpleCreateSeatsRequest.CategoryQuantityItem item : request.categories()) {
+            SeatCategory category = seatCategoryRepository.findById(item.categoryId())
+                    .orElseThrow(() -> new IllegalArgumentException("Seat category not found: " + item.categoryId()));
+            for (int chair = 1; chair <= item.quantity(); chair++) {
+                Seat seat = Seat.builder()
+                        .concert(concert)
+                        .tableNumber(tableIndex)
+                        .chairNumber(chair)
+                        .category(category)
+                        .status(SeatStatus.AVAILABLE)
+                        .build();
+                newSeats.add(seat);
+            }
+            tableIndex++;
+        }
+
+        seatRepository.saveAll(newSeats);
+        return newSeats.size();
+    }
+
+    /**
+     * Add seats for a single category without removing existing seats.
+     */
+    @Transactional
+    public int addCategorySeats(AddCategorySeatsRequest request) {
+        Concert concert = concertRepository.findById(request.concertId())
+                .orElseThrow(() -> new IllegalArgumentException("Concert not found"));
+        SeatCategory category = seatCategoryRepository.findById(request.categoryId())
+                .orElseThrow(() -> new IllegalArgumentException("Seat category not found"));
+
+        // Find max tableNumber used for this category to avoid duplicates
+        List<Seat> existingSeats = seatRepository.findAllByConcertId(request.concertId());
+        int maxTableNumber = existingSeats.stream()
+                .mapToInt(Seat::getTableNumber)
+                .max()
+                .orElse(-1);
+        
+        // Use next table number for new category
+        int tableNumber = maxTableNumber + 1;
+        
+        // Find max chair number for this new table (should be 0 since it's new)
+        int maxChair = 0;
+
+        List<Seat> newSeats = new ArrayList<>();
+        for (int chair = maxChair + 1; chair <= maxChair + request.quantity(); chair++) {
+            Seat seat = Seat.builder()
+                    .concert(concert)
+                    .tableNumber(tableNumber)
+                    .chairNumber(chair)
+                    .category(category)
+                    .status(SeatStatus.AVAILABLE)
+                    .build();
+            newSeats.add(seat);
         }
 
         seatRepository.saveAll(newSeats);
@@ -258,6 +336,8 @@ public class SeatAdminService {
         if (seat.getStatus() == SeatStatus.SOLD) {
             throw new IllegalStateException("Cannot delete a sold seat");
         }
+        // Remove from reservation_seats join table first
+        seatRepository.deleteReservationSeatsBySeatId(seatId);
         seatRepository.delete(seat);
     }
 

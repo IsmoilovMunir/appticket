@@ -3,7 +3,7 @@
     <header class="admin-header navbar navbar-expand-lg bg-dark border-bottom border-secondary">
       <div class="container-fluid">
         <RouterLink class="navbar-brand text-white fw-semibold d-flex align-items-center" to="/admin">
-          <img :src="logoImg" alt="Aurora Concert" class="admin-logo-img" />
+          <img :src="logoImg" alt="App Ticket" class="admin-logo-img" />
         </RouterLink>
         <nav class="d-flex gap-3 align-items-center">
           <RouterLink v-if="isAuthenticated" class="nav-link text-white-50" to="/admin">Панель управления</RouterLink>
@@ -24,7 +24,7 @@
 import { computed } from 'vue';
 import { RouterLink, RouterView, useRouter } from 'vue-router';
 import { useAdminStore } from '../stores/adminStore';
-import logoImg from '@/assets/log.svg';
+import logoImg from '@/assets/logo.svg';
 
 const adminStore = useAdminStore();
 const router = useRouter();
@@ -67,7 +67,7 @@ const handleSignOut = () => {
 }
 
 .admin-logo-img {
-  height: 50px;
+  height: 60px;
   width: auto;
   filter: brightness(0) invert(1);
 }

@@ -29,6 +29,9 @@ backend/.env.local
 infrastructure/.env
 *.env.local
 
+# Local config with secrets (пароль почты и т.д.)
+backend/src/main/resources/application-local.yml
+
 # Database backups
 *.sql
 infrastructure/backup.sql

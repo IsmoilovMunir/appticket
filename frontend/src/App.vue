@@ -1,10 +1,9 @@
 <template>
   <div class="app-shell">
-    <SplashScreen />
-    <header class="app-navbar navbar navbar-expand-lg bg-body">
+    <header class="app-navbar navbar navbar-expand-lg">
       <div class="container">
         <RouterLink class="navbar-brand fw-semibold d-flex align-items-center" to="/">
-          <img :src="logoImg" alt="Aurora Concert" class="logo-img" />
+          <img :src="logoImg" alt="App Ticket" class="logo-img" />
         </RouterLink>
 
         <nav class="d-flex gap-3 align-items-center flex-wrap">
@@ -13,7 +12,7 @@
       </div>
     </header>
     <main class="flex-grow-1">
-      <RouterView />
+      <RouterView :key="route.fullPath" />
     </main>
     <footer class="py-4 border-top bg-body-tertiary footer-with-menu">
       <div class="container text-center small text-body-secondary">
@@ -35,9 +34,10 @@
 </template>
 
 <script setup lang="ts">
-import { RouterLink, RouterView } from 'vue-router';
-import logoImg from '@/assets/log.svg';
-import SplashScreen from '@/components/SplashScreen.vue';
+import { RouterLink, RouterView, useRoute } from 'vue-router';
+import logoImg from '@/assets/logo.svg';
+
+const route = useRoute();
 </script>
 
 <style scoped>
@@ -47,12 +47,28 @@ import SplashScreen from '@/components/SplashScreen.vue';
   flex-direction: column;
 }
 .app-navbar {
-  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+  background-color: #000;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
   position: sticky;
   top: 0;
   z-index: 10;
   padding: 0.5rem 0;
   min-height: auto;
+}
+
+.app-navbar .nav-link {
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 0.9rem;
+  padding: 0.25rem 0.5rem;
+}
+
+.app-navbar .nav-link:hover,
+.app-navbar .nav-link.router-link-active {
+  color: #fff;
+}
+
+.app-navbar .navbar-brand {
+  color: #fff;
 }
 
 .app-navbar .container {
@@ -61,13 +77,8 @@ import SplashScreen from '@/components/SplashScreen.vue';
 }
 
 .logo-img {
-  height: 35px;
+  height: 45px;
   width: auto;
-}
-
-.nav-link {
-  font-size: 0.9rem;
-  padding: 0.25rem 0.5rem;
 }
 
 .footer-creator-link {

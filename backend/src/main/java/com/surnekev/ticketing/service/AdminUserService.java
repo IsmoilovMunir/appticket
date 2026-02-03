@@ -51,7 +51,8 @@ public class AdminUserService implements UserDetailsService {
                     .build();
             AdminUser savedAdmin = adminUserRepository.save(admin);
             
-            log.info("Создан дефолтный админ пользователь. Пожалуйста, измените пароль после первого входа!");
+            log.info("Создан дефолтный админ пользователь с ролями: {}. Пожалуйста, измените пароль после первого входа!", 
+                    savedAdmin.getRoles());
             
             // Отправляем пароль в Telegram, если настроен бот
             telegramService.sendAdminCredentials("admin", defaultAdminPassword);

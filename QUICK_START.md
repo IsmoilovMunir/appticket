@@ -59,8 +59,8 @@ newgrp docker
 ## Шаг 2: Клонирование проекта
 
 ```bash
-git clone <ваш-репозиторий> surnekev
-cd surnekev
+git clone <ваш-репозиторий> apptickit
+cd apptickit
 ```
 
 ## Шаг 3: Создание .env файла
@@ -89,7 +89,7 @@ TELEGRAM_BOT_TOKEN=ваш_токен_бота
 TELEGRAM_CHAT_ID=ваш_chat_id
 
 # Email
-MAIL_FROM=info@surnekevents.ru
+MAIL_FROM=info@appticket.ru
 EOF
 ```
 

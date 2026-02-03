@@ -12,12 +12,16 @@ public record ConcertDto(
         Instant guestStartTime,
         String venue,
         String city,
+        Double venueLat,
+        Double venueLon,
         String currency,
         String ageRestriction,
         String eventType,
         String posterUrl,
         String salesSchemeUrl,
-        Integer minTicketPriceCents
+        Integer minTicketPriceCents,
+        boolean simpleMode,
+        String telegramManagerChatIds
 ) {
 }
 

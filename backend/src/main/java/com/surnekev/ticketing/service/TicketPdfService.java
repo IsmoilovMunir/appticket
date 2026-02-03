@@ -24,7 +24,7 @@ public class TicketPdfService {
     private static final DateTimeFormatter DATE_TIME_FORMATTER =
             DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm").withZone(MOSCOW_ZONE);
     
-    private static final String ORGANIZER_NAME = "Surnek Events";
+    private static final String ORGANIZER_NAME = "App Ticket";
     
     private static final String FULL_RULES = """
             <div class="rules-content">
@@ -88,7 +88,7 @@ public class TicketPdfService {
               
               <div class="rules-divider">⸻</div>
               
-              <p class="rules-footer">Информация о возврате билетов доступна на сайте: www.surnekevents.ru</p>
+              <p class="rules-footer">Информация о возврате билетов доступна на сайте: www.appticket.ru</p>
             </div>
             """;
 

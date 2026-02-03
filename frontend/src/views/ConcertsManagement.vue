@@ -127,13 +127,33 @@
                 />
               </div>
               <div class="col-md-6">
-                <label class="form-label">Город мероприятия</label>
+                <label class="form-label">Город / Адрес</label>
                 <input
                   type="text"
                   v-model="concertForm.city"
                   class="form-control"
-                  placeholder="Город"
+                  placeholder="м. Текстильщики, ул. Юных Ленинцев, 12, ресторан «АСАКИ»"
                 />
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Координаты для карты (широта, долгота)</label>
+                <div class="input-group input-group-sm">
+                  <input
+                    type="number"
+                    step="any"
+                    v-model.number="concertForm.venueLat"
+                    class="form-control"
+                    placeholder="55.771"
+                  />
+                  <input
+                    type="number"
+                    step="any"
+                    v-model.number="concertForm.venueLon"
+                    class="form-control"
+                    placeholder="37.660"
+                  />
+                </div>
+                <small class="text-body-secondary">Укажите для отображения карты. Можно взять с Яндекс.Карт (правый клик → «Что здесь?»)</small>
               </div>
               <div class="col-md-4">
                 <label class="form-label">Валюта</label>
@@ -179,6 +199,35 @@
                 <small v-if="posterUploading" class="text-body-secondary">Загрузка...</small>
               </div>
               <div class="col-12">
+                <div class="form-check mb-3">
+                  <input
+                    type="checkbox"
+                    class="form-check-input"
+                    id="simpleModeCheck"
+                    v-model="concertForm.simpleMode"
+                  />
+                  <label class="form-check-label" for="simpleModeCheck">
+                    <strong>Простой режим</strong> — без схемы зала, только выбор категории и количества билетов (танцпол, сидячие места и т.д.)
+                  </label>
+                </div>
+              </div>
+              <div class="col-12">
+                <label class="form-label">
+                  <i class="bi bi-telegram me-1"></i>
+                  Telegram Chat ID менеджеров концерта
+                </label>
+                <input
+                  type="text"
+                  v-model="concertForm.telegramManagerChatIds"
+                  class="form-control"
+                  placeholder="123456789, 987654321"
+                />
+                <small class="text-body-secondary d-block mt-1">
+                  Через запятую. Подписавшиеся получают уведомления о бронях и статусах этого концерта в боте.
+                  Узнать свой ID: напишите боту <code>/start</code> или <code>/myid</code>.
+                </small>
+              </div>
+              <div v-if="!concertForm.simpleMode" class="col-12">
                 <label class="form-label">Схема продаж (SVG)</label>
                 <div v-if="concertForm.salesSchemeUrl" class="mb-2">
                   <a :href="concertForm.salesSchemeUrl" target="_blank" class="btn btn-sm btn-outline-primary me-2">
@@ -228,6 +277,8 @@
           <h5 class="mb-0">
             <i class="bi bi-grid-3x3-gap me-2"></i>
             Управление местами для концерта: {{ selectedConcertForSeats.title }}
+            <span v-if="selectedConcertForSeats.simpleMode" class="badge bg-info ms-2">Простой режим</span>
+            <span v-else class="badge bg-secondary ms-2">Схема зала</span>
             <span v-if="!existingSeatsLoading && existingSeats.length > 0" class="badge bg-light text-dark ms-2">
               {{ existingSeats.length }} мест
             </span>
@@ -286,65 +337,9 @@
             <!-- Содержимое секции (показывается только если развернуто) -->
             <div v-show="showExistingSeats">
 
-            <div class="table-responsive">
-              <table class="table table-sm">
-                <thead class="table-light">
-                  <tr>
-                    <th>Тип</th>
-                    <th>Таблица</th>
-                    <th>Место</th>
-                    <th>Категория</th>
-                    <th>Цена</th>
-                    <th>Статус</th>
-                    <th>Действия</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr v-for="seat in existingSeats" :key="seat.id">
-                    <td>
-                      <span v-if="seat.tableNumber === 0" class="badge bg-warning">
-                        <i class="bi bi-music-note me-1"></i>Танцпол
-                      </span>
-                      <span v-else class="badge bg-primary">
-                        <i class="bi bi-table me-1"></i>Стол
-                      </span>
-                    </td>
-                    <td>{{ seat.tableNumber === 0 ? '-' : seat.tableNumber }}</td>
-                    <td>{{ seat.chairNumber }}</td>
-                    <td>{{ seat.categoryName }}</td>
-                    <td>{{ formatPrice(seat.priceCents) }}</td>
-                    <td>
-                      <span class="badge"
-                            :class="{
-                              'bg-success': seat.status === 'AVAILABLE',
-                              'bg-warning': seat.status === 'HELD',
-                              'bg-danger': seat.status === 'SOLD',
-                              'bg-secondary': seat.status === 'BLOCKED'
-                            }">
-                        {{ seat.status === 'AVAILABLE' ? 'Свободно' :
-                           seat.status === 'HELD' ? 'Забронировано' :
-                           seat.status === 'SOLD' ? 'Продано' : 'Заблокировано' }}
-                      </span>
-                    </td>
-                    <td>
-                      <button
-                        class="btn btn-sm btn-outline-danger"
-                        @click="handleDeleteSeat(seat)"
-                        :disabled="deletingSeats[seat.id] || seat.status === 'SOLD'"
-                        :title="seat.status === 'SOLD' ? 'Нельзя удалить проданное место' : 'Удалить место'"
-                      >
-                        <span v-if="deletingSeats[seat.id]" class="spinner-border spinner-border-sm me-1"></span>
-                        <i class="bi bi-trash" v-else></i>
-                      </button>
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-
-            <!-- Статистика -->
-            <div class="row g-3 mt-2">
-              <div class="col-md-3">
+            <!-- Общая статистика -->
+            <div class="row g-2 mb-3">
+              <div class="col-3">
                 <div class="card border-success">
                   <div class="card-body p-2 text-center">
                     <div class="h6 mb-0">{{ existingSeats.filter(s => s.status === 'AVAILABLE').length }}</div>
@@ -352,7 +347,7 @@
                   </div>
                 </div>
               </div>
-              <div class="col-md-3">
+              <div class="col-3">
                 <div class="card border-warning">
                   <div class="card-body p-2 text-center">
                     <div class="h6 mb-0">{{ existingSeats.filter(s => s.status === 'HELD').length }}</div>
@@ -360,7 +355,7 @@
                   </div>
                 </div>
               </div>
-              <div class="col-md-3">
+              <div class="col-3">
                 <div class="card border-danger">
                   <div class="card-body p-2 text-center">
                     <div class="h6 mb-0">{{ existingSeats.filter(s => s.status === 'SOLD').length }}</div>
@@ -368,7 +363,7 @@
                   </div>
                 </div>
               </div>
-              <div class="col-md-3">
+              <div class="col-3">
                 <div class="card border-secondary">
                   <div class="card-body p-2 text-center">
                     <div class="h6 mb-0">{{ existingSeats.filter(s => s.status === 'BLOCKED').length }}</div>
@@ -377,6 +372,85 @@
                 </div>
               </div>
             </div>
+
+            <!-- Группировка по категориям -->
+            <div
+              v-for="group in seatsGroupedByCategory"
+              :key="group.categoryName"
+              class="card mb-3"
+            >
+              <div class="card-header d-flex justify-content-between align-items-center py-2">
+                <div class="d-flex align-items-center">
+                  <button
+                    class="btn btn-link p-0 text-decoration-none fw-semibold me-2"
+                    @click="toggleCategoryExpanded(group.categoryName)"
+                  >
+                    <i class="bi me-1" :class="expandedCategories[group.categoryName] ? 'bi-chevron-down' : 'bi-chevron-right'"></i>
+                    {{ group.categoryName }}
+                  </button>
+                  <span class="badge bg-primary me-2">{{ group.seats.length }} мест</span>
+                  <span class="badge bg-success">{{ group.available }} свободно</span>
+                  <span v-if="group.sold > 0" class="badge bg-danger ms-1">{{ group.sold }} продано</span>
+                </div>
+                <div class="d-flex gap-2 align-items-center">
+                  <span class="text-body-secondary small">{{ formatPrice(group.priceCents) }}</span>
+                  <button
+                    class="btn btn-sm btn-outline-danger"
+                    @click="deleteCategory(group.categoryName)"
+                    :disabled="deletingCategory === group.categoryName || group.sold > 0"
+                    :title="group.sold > 0 ? 'Нельзя удалить — есть проданные места' : 'Удалить все места этой категории'"
+                  >
+                    <span v-if="deletingCategory === group.categoryName" class="spinner-border spinner-border-sm me-1"></span>
+                    <i class="bi bi-trash me-1" v-else></i>
+                    Удалить категорию
+                  </button>
+                </div>
+              </div>
+
+              <div v-show="expandedCategories[group.categoryName]" class="card-body p-0">
+                <div class="table-responsive">
+                  <table class="table table-sm mb-0">
+                    <thead class="table-light">
+                      <tr>
+                        <th style="width: 60px;">№</th>
+                        <th>Статус</th>
+                        <th style="width: 100px;">Действия</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr v-for="seat in group.seats" :key="seat.id">
+                        <td>{{ seat.chairNumber }}</td>
+                        <td>
+                          <span class="badge"
+                                :class="{
+                                  'bg-success': seat.status === 'AVAILABLE',
+                                  'bg-warning': seat.status === 'HELD',
+                                  'bg-danger': seat.status === 'SOLD',
+                                  'bg-secondary': seat.status === 'BLOCKED'
+                                }">
+                            {{ seat.status === 'AVAILABLE' ? 'Свободно' :
+                               seat.status === 'HELD' ? 'Забронировано' :
+                               seat.status === 'SOLD' ? 'Продано' : 'Заблокировано' }}
+                          </span>
+                        </td>
+                        <td>
+                          <button
+                            class="btn btn-sm btn-outline-danger"
+                            @click="handleDeleteSeat(seat)"
+                            :disabled="deletingSeats[seat.id] || seat.status === 'SOLD'"
+                            :title="seat.status === 'SOLD' ? 'Нельзя удалить проданное место' : 'Удалить место'"
+                          >
+                            <span v-if="deletingSeats[seat.id]" class="spinner-border spinner-border-sm"></span>
+                            <i class="bi bi-trash" v-else></i>
+                          </button>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+
             </div> <!-- Закрываем сворачиваемую секцию -->
           </div>
 
@@ -391,7 +465,101 @@
             </div>
           </div>
 
-          <form v-if="seatCategories.length > 0" @submit.prevent="createSeatsForConcert">
+          <!-- Простой режим: категория + количество -->
+          <form v-if="selectedConcertForSeats?.simpleMode && seatCategories.length > 0" @submit.prevent="createSimpleSeats" class="mb-4">
+            <div class="alert alert-info small mb-3">
+              <i class="bi bi-info-circle me-1"></i>
+              В простом режиме пользователь выбирает только категорию и количество билетов (без схемы зала).
+              Добавьте категории и укажите количество мест для каждой.
+            </div>
+
+            <!-- Добавить категорию -->
+            <div class="mb-3 d-flex align-items-end gap-2">
+              <div class="flex-grow-1">
+                <label class="form-label small mb-1">Добавить категорию</label>
+                <select
+                  v-model="categoryToAdd"
+                  class="form-select form-select-sm"
+                >
+                  <option value="">— Выберите категорию —</option>
+                  <option
+                    v-for="cat in availableCategoriesToAdd"
+                    :key="cat.id"
+                    :value="cat.id"
+                  >
+                    {{ cat.name }} — {{ formatPrice(cat.priceCents) }}
+                  </option>
+                </select>
+                <small v-if="availableCategoriesToAdd.length === 0 && simpleSeatsSelection.length > 0" class="text-body-secondary">
+                  Все категории добавлены
+                </small>
+              </div>
+              <button
+                type="button"
+                class="btn btn-outline-primary btn-sm"
+                :disabled="!categoryToAdd || availableCategoriesToAdd.length === 0"
+                @click="addSimpleCategory"
+              >
+                <i class="bi bi-plus-lg me-1"></i>
+                Добавить
+              </button>
+            </div>
+
+            <div v-if="simpleSeatsSelection.length === 0" class="alert alert-secondary small mb-3">
+              <i class="bi bi-info-circle me-1"></i>
+              Добавьте хотя бы одну категорию выше.
+            </div>
+
+            <div v-else class="table-responsive mb-3">
+              <table class="table table-sm">
+                <thead>
+                  <tr>
+                    <th>Категория</th>
+                    <th>Цена</th>
+                    <th>Количество мест</th>
+                    <th style="width: 80px;">Действия</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="item in simpleSeatsSelection" :key="item.categoryId">
+                    <td>{{ item.categoryName }}</td>
+                    <td>{{ formatPrice(item.priceCents) }}</td>
+                    <td>
+                      <input
+                        type="number"
+                        v-model.number="item.quantity"
+                        class="form-control form-control-sm"
+                        min="0"
+                        placeholder="0"
+                        style="max-width: 120px;"
+                      />
+                    </td>
+                    <td>
+                      <button
+                        type="button"
+                        class="btn btn-sm btn-outline-danger"
+                        @click="removeSimpleCategory(item.categoryId)"
+                        title="Удалить категорию"
+                      >
+                        <i class="bi bi-trash"></i>
+                      </button>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <button type="submit" class="btn btn-success" :disabled="creatingSeats || !hasSimpleSeatsSelection">
+              <span v-if="creatingSeats" class="spinner-border spinner-border-sm me-2"></span>
+              <i class="bi bi-check-lg me-1"></i>
+              Создать места
+            </button>
+            <p v-if="createSeatsError" class="text-danger small mt-2 mb-0">
+              <i class="bi bi-exclamation-circle me-1"></i>{{ createSeatsError }}
+            </p>
+          </form>
+
+          <form v-else-if="seatCategories.length > 0" @submit.prevent="createSeatsForConcert">
             <div class="mb-3">
               <label class="form-label">Категория мест *</label>
               <select v-model="seatsForm.categoryId" class="form-select" required>
@@ -556,6 +724,7 @@
                   <td>
                     <div class="fw-semibold">{{ concert.title }}</div>
                     <small class="text-body-secondary">{{ concert.eventType || 'Концерт' }}</small>
+                    <span v-if="concert.simpleMode" class="badge bg-info ms-2">Простой режим</span>
                   </td>
                   <td>
                     <code class="small">/{{ concert.slug }}</code>
@@ -595,9 +764,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
-import { fetchAllConcerts, createConcert, updateConcert, deleteConcert, uploadPoster, uploadScheme, bulkCreateSeats, fetchSeatCategories, fetchSeats, deleteSeat } from '../services/api';
+import { fetchAllConcerts, createConcert, updateConcert, deleteConcert, uploadPoster, uploadScheme, bulkCreateSeats, addCategorySeats, fetchSeatCategories, fetchSeats, deleteSeat } from '../services/api';
 import type { Concert, CreateConcertRequest, UpdateConcertRequest, SeatCategorySummary, BulkCreateSeatsRequest, Seat } from '../types';
 import SchemeEditor from '../components/SchemeEditor.vue';
 
@@ -650,6 +819,120 @@ const existingSeats = ref<Seat[]>([]);
 const existingSeatsLoading = ref(false);
 const showExistingSeats = ref(true);
 const deletingSeats = ref<Record<number, boolean>>({});
+const deletingCategory = ref<string | null>(null);
+const expandedCategories = ref<Record<string, boolean>>({});
+
+interface SeatGroup {
+  categoryName: string;
+  priceCents: number;
+  seats: Seat[];
+  available: number;
+  sold: number;
+}
+
+const seatsGroupedByCategory = computed<SeatGroup[]>(() => {
+  const groups: Record<string, SeatGroup> = {};
+  for (const seat of existingSeats.value) {
+    const key = seat.categoryName || 'Без категории';
+    if (!groups[key]) {
+      groups[key] = {
+        categoryName: key,
+        priceCents: seat.priceCents,
+        seats: [],
+        available: 0,
+        sold: 0
+      };
+    }
+    groups[key].seats.push(seat);
+    if (seat.status === 'AVAILABLE') groups[key].available++;
+    if (seat.status === 'SOLD') groups[key].sold++;
+  }
+  return Object.values(groups).sort((a, b) => a.categoryName.localeCompare(b.categoryName));
+});
+
+const toggleCategoryExpanded = (categoryName: string) => {
+  expandedCategories.value = {
+    ...expandedCategories.value,
+    [categoryName]: !expandedCategories.value[categoryName]
+  };
+};
+
+const deleteCategory = async (categoryName: string) => {
+  const group = seatsGroupedByCategory.value.find((g) => g.categoryName === categoryName);
+  if (!group) return;
+  
+  if (group.sold > 0) {
+    createSeatsError.value = 'Нельзя удалить категорию с проданными местами';
+    return;
+  }
+  
+  const deletableSeats = group.seats.filter((s) => s.status !== 'SOLD');
+  if (deletableSeats.length === 0) return;
+  
+  if (!confirm(`Удалить все ${deletableSeats.length} мест категории "${categoryName}"? Это действие нельзя отменить.`)) {
+    return;
+  }
+  
+  deletingCategory.value = categoryName;
+  createSeatsError.value = '';
+  
+  try {
+    for (const seat of deletableSeats) {
+      await deleteSeat(seat.id);
+    }
+    successMessage.value = `Удалено ${deletableSeats.length} мест категории "${categoryName}"`;
+    if (selectedConcertForSeats.value) {
+      await loadExistingSeats(selectedConcertForSeats.value.id);
+    }
+    setTimeout(() => {
+      successMessage.value = '';
+    }, 3000);
+  } catch (err: any) {
+    createSeatsError.value = err.response?.data?.error || err.message || 'Не удалось удалить места';
+  } finally {
+    deletingCategory.value = null;
+  }
+};
+const categoryToAdd = ref<number | ''>('');
+const simpleSeatsSelection = ref<Array<{
+  categoryId: number;
+  categoryName: string;
+  priceCents: number;
+  quantity: number;
+}>>([]);
+
+const availableCategoriesToAdd = computed(() =>
+  seatCategories.value.filter(
+    (cat) => !simpleSeatsSelection.value.some((s) => s.categoryId === cat.id)
+  )
+);
+
+const hasSimpleSeatsSelection = computed(() =>
+  simpleSeatsSelection.value.some((item) => item.quantity > 0)
+);
+
+const addSimpleCategory = () => {
+  if (!categoryToAdd.value) return;
+  const cat = seatCategories.value.find((c) => c.id === categoryToAdd.value);
+  if (cat) {
+    simpleSeatsSelection.value = [
+      ...simpleSeatsSelection.value,
+      {
+        categoryId: cat.id,
+        categoryName: cat.name,
+        priceCents: cat.priceCents ?? 0,
+        quantity: 0
+      }
+    ];
+    categoryToAdd.value = '';
+  }
+};
+
+const removeSimpleCategory = (categoryId: number) => {
+  simpleSeatsSelection.value = simpleSeatsSelection.value.filter(
+    (s) => s.categoryId !== categoryId
+  );
+};
 
 const concertForm = ref<CreateConcertRequest & { id?: number }>({
   title: '',
@@ -660,11 +943,15 @@ const concertForm = ref<CreateConcertRequest & { id?: number }>({
   guestStartTime: '',
   venue: '',
   city: '',
+  venueLat: null,
+  venueLon: null,
   currency: 'RUB',
   ageRestriction: '',
   eventType: '',
   posterUrl: '',
-  salesSchemeUrl: ''
+  salesSchemeUrl: '',
+  simpleMode: false,
+  telegramManagerChatIds: ''
 });
 
 const loadConcerts = async () => {
@@ -715,11 +1002,15 @@ const editConcert = (concert: Concert) => {
     guestStartTime: concert.guestStartTime ? new Date(concert.guestStartTime).toISOString().slice(0, 16) : '',
     venue: concert.venue || '',
     city: concert.city || '',
+    venueLat: concert.venueLat ?? null,
+    venueLon: concert.venueLon ?? null,
     currency: concert.currency || 'RUB',
     ageRestriction: concert.ageRestriction || '',
     eventType: concert.eventType || '',
     posterUrl: concert.posterUrl || '',
     salesSchemeUrl: concert.salesSchemeUrl || '',
+    simpleMode: concert.simpleMode || false,
+    telegramManagerChatIds: concert.telegramManagerChatIds || '',
     id: concert.id
   };
   showCreateForm.value = true;
@@ -739,11 +1030,15 @@ const cancelEdit = () => {
     guestStartTime: '',
     venue: '',
     city: '',
+    venueLat: null as number | null,
+    venueLon: null as number | null,
     currency: 'RUB',
     ageRestriction: '',
     eventType: '',
     posterUrl: '',
-    salesSchemeUrl: ''
+    salesSchemeUrl: '',
+    simpleMode: false,
+    telegramManagerChatIds: ''
   };
   saveError.value = '';
   successMessage.value = '';
@@ -828,11 +1123,15 @@ const saveConcert = async () => {
         guestStartTime: concertForm.value.guestStartTime ? new Date(concertForm.value.guestStartTime).toISOString() : null,
         venue: concertForm.value.venue || null,
         city: concertForm.value.city || null,
+        venueLat: concertForm.value.venueLat ?? null,
+        venueLon: concertForm.value.venueLon ?? null,
         currency: concertForm.value.currency || null,
         ageRestriction: concertForm.value.ageRestriction || null,
         eventType: concertForm.value.eventType || null,
         posterUrl: concertForm.value.posterUrl || null,
-        salesSchemeUrl: concertForm.value.salesSchemeUrl || null
+        salesSchemeUrl: concertForm.value.salesSchemeUrl || null,
+        simpleMode: concertForm.value.simpleMode || false,
+        telegramManagerChatIds: concertForm.value.telegramManagerChatIds || null
       };
       await updateConcert(editingConcert.value.id, updateData);
       successMessage.value = 'Концерт успешно обновлен';
@@ -846,11 +1145,15 @@ const saveConcert = async () => {
         guestStartTime: concertForm.value.guestStartTime ? new Date(concertForm.value.guestStartTime).toISOString() : null,
         venue: concertForm.value.venue || null,
         city: concertForm.value.city || null,
+        venueLat: concertForm.value.venueLat ?? null,
+        venueLon: concertForm.value.venueLon ?? null,
         currency: concertForm.value.currency || null,
         ageRestriction: concertForm.value.ageRestriction || null,
         eventType: concertForm.value.eventType || null,
         posterUrl: concertForm.value.posterUrl || null,
-        salesSchemeUrl: concertForm.value.salesSchemeUrl || null
+        salesSchemeUrl: concertForm.value.salesSchemeUrl || null,
+        simpleMode: concertForm.value.simpleMode || false,
+        telegramManagerChatIds: concertForm.value.telegramManagerChatIds || null
       };
       await createConcert(createData);
       successMessage.value = 'Концерт успешно создан';
@@ -963,6 +1266,10 @@ const openCreateSeatsForm = async (concert: Concert) => {
   danceFloorCapacity.value = 250;
   showExistingSeats.value = true;
   deletingSeats.value = {};
+  deletingCategory.value = null;
+  expandedCategories.value = {};
+  categoryToAdd.value = '';
+  simpleSeatsSelection.value = [];
   seatsForm.value = {
     concertId: concert.id,
     categoryId: 0,
@@ -985,6 +1292,52 @@ const cancelCreateSeats = () => {
   createSeatsError.value = '';
   showDanceFloor.value = false;
   danceFloorCapacity.value = 250;
+};
+
+const createSimpleSeats = async () => {
+  const categories = simpleSeatsSelection.value
+    .filter((item) => item.quantity > 0)
+    .map((item) => ({
+      categoryId: item.categoryId,
+      quantity: item.quantity
+    }));
+
+  if (categories.length === 0) {
+    createSeatsError.value = 'Укажите количество мест хотя бы для одной категории';
+    return;
+  }
+
+  creatingSeats.value = true;
+  createSeatsError.value = '';
+
+  try {
+    let totalCreated = 0;
+    // Add each category separately without removing existing seats
+    for (const cat of categories) {
+      const result = await addCategorySeats({
+        concertId: selectedConcertForSeats.value!.id,
+        categoryId: cat.categoryId,
+        quantity: cat.quantity
+      });
+      totalCreated += result.created;
+    }
+    successMessage.value = `Успешно создано ${totalCreated} мест`;
+
+    if (selectedConcertForSeats.value) {
+      await loadExistingSeats(selectedConcertForSeats.value.id);
+    }
+
+    simpleSeatsSelection.value = [];
+
+    setTimeout(() => {
+      successMessage.value = '';
+    }, 5000);
+  } catch (err: any) {
+    console.error('Error creating simple seats:', err);
+    createSeatsError.value = err.response?.data?.error || err.message || 'Не удалось создать места';
+  } finally {
+    creatingSeats.value = false;
+  }
 };
 
 const createDanceFloorOnly = async () => {
