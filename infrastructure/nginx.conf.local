@@ -61,16 +61,13 @@ server {
         proxy_read_timeout 7d;
     }
 
-    # Проксирование на frontend контейнер
+    # Проксирование на frontend контейнер (SPA fallback обрабатывается во frontend-nginx)
     location / {
-        proxy_pass http://frontend:4173;
+        proxy_pass http://frontend:80;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
-
-        # Для SPA роутинга - возвращаем index.html для всех не-API маршрутов
-        try_files $uri $uri/ /index.html;
 
         # Увеличиваем таймауты
         proxy_connect_timeout 60s;
