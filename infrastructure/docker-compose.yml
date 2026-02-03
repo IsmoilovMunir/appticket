@@ -78,6 +78,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_started
+    volumes:
+      - uploads-data:/app/uploads
     ports:
       - "${SERVER_PORT:-8080}:8080"
     restart: unless-stopped
@@ -109,4 +111,5 @@ services:
 
 volumes:
   postgres-data:
+  uploads-data:
 
