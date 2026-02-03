@@ -348,7 +348,7 @@ const updateDanceFloorInfo = () => {
   const priceText = price > 0 ? formatPrice(price) : 'Цена не установлена';
 
   // Создаем текст для title
-  const titleText = `Танцпол · ${priceText} · Доступно: ${availableSeats.length}/${totalSeats} мест`;
+  const titleText = `Танцпол · ${priceText}`;
 
   // Обновляем title для всех элементов танцпола
   danceFloorElements.forEach((element) => {

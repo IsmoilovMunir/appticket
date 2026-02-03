@@ -311,11 +311,6 @@
             <div class="price-label">за билет</div>
           </div>
 
-          <!-- Доступность -->
-          <div class="availability-info">
-            <i class="bi bi-check-circle-fill"></i>
-            Доступно {{ danceFloorAvailableSeats }} мест
-          </div>
 
           <!-- Quantity Selector -->
           <div class="quantity-section">

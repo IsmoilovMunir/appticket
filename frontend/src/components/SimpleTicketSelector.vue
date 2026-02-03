@@ -44,10 +44,6 @@
                     <span class="text-body-secondary small"> за билет</span>
                   </div>
                 </div>
-                <div class="availability-badge">
-                  <i class="bi bi-check-circle-fill text-success me-1"></i>
-                  Доступно {{ cat.availableCount }} мест
-                </div>
               </div>
               <div class="text-end">
                 <button class="btn btn-primary btn-lg">
@@ -76,10 +72,6 @@
               <span class="fw-bold text-primary fs-5">{{ formatPrice(selectedCategory.priceCents) }}</span>
               <span class="text-body-secondary small"> за билет</span>
             </div>
-          </div>
-          <div class="availability-badge">
-            <i class="bi bi-check-circle-fill text-success me-1"></i>
-            Доступно {{ selectedCategory.availableCount }} мест
           </div>
         </div>
 
@@ -111,7 +103,7 @@
               <i class="bi bi-plus-lg"></i>
             </button>
           </div>
-          <small class="text-body-secondary">Максимум {{ Math.min(selectedCategory.availableCount, 10) }} билетов</small>
+          <small class="text-body-secondary">Максимум 10 билетов</small>
         </div>
 
         <!-- Итого -->
