@@ -82,6 +82,7 @@ seatmap:
   hold-ttl-seconds: 1800
 
 mail:
+  enabled: ${MAIL_ENABLED:true}
   from: ${MAIL_FROM:info@appticket.ru}
 
 file:

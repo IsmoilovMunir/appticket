@@ -1,10 +1,12 @@
-# Production profile (почта: порт 465 SSL — часто не блокируется хостингами)
+# Production profile
+# Порт 587 (STARTTLS) — рекомендуется; порт 465 (SSL) — альтернатива
+# Для 465: MAIL_PORT=465 MAIL_SSL_ENABLE=true MAIL_STARTTLS_ENABLE=false
 spring:
   mail:
-    port: ${MAIL_PORT:465}
+    port: ${MAIL_PORT:587}
     properties:
-      mail.smtp.starttls.enable: false
-      mail.smtp.ssl.enable: true
+      mail.smtp.starttls.enable: ${MAIL_STARTTLS_ENABLE:true}
+      mail.smtp.ssl.enable: ${MAIL_SSL_ENABLE:false}
   flyway:
     enabled: true
     baseline-on-migrate: true

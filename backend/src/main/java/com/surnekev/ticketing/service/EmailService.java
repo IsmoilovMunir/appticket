@@ -6,6 +6,7 @@ import com.surnekev.ticketing.domain.Ticket;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.ByteArrayResource;
 import org.springframework.lang.NonNull;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.JavaMailSenderImpl;
@@ -14,7 +15,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
 import jakarta.mail.internet.MimeMessage;
-import jakarta.mail.util.ByteArrayDataSource;
 import java.nio.charset.StandardCharsets;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
@@ -32,27 +32,26 @@ public class EmailService {
 
     private final JavaMailSender mailSender;
 
-    @Value("${mail.from:no-reply@appticket.ru}")
+    @Value("${mail.from:no-reply@apptickit.ru}")
     private String fromAddress;
 
     public void sendTickets(Reservation reservation, List<TicketAttachment> attachments, List<Ticket> confirmedTickets) {
         if (attachments == null || attachments.isEmpty()) {
-            log.warn("No attachments for reservation {}, skipping email", reservation.getId());
             return;
         }
         String buyerEmail = reservation.getBuyerEmail();
         if (!StringUtils.hasText(buyerEmail)) {
-            log.warn("Reservation {} has no buyer email, skipping ticket sending", reservation.getId());
+            log.debug("Reservation {} does not have email, skipping ticket sending", reservation.getId());
             return;
         }
         if (!isConfigured()) {
-            log.warn("Mail sender host is not configured, skipping email delivery");
+            log.debug("Mail sender host is not configured, skipping email delivery");
             return;
         }
         try {
             MimeMessage mimeMessage = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, true, StandardCharsets.UTF_8.name());
-            String from = StringUtils.hasText(fromAddress) ? fromAddress : "no-reply@appticket.ru";
+            String from = StringUtils.hasText(fromAddress) ? fromAddress : "no-reply@apptickit.ru";
             helper.setFrom(Objects.requireNonNull(from));
             helper.setTo(Objects.requireNonNull(buyerEmail));
             String subjectTitle = safe(reservation.getConcert().getTitle());
@@ -61,16 +60,15 @@ public class EmailService {
             helper.setText(buildBody(reservation, confirmedTickets), false);
 
             for (TicketAttachment attachment : attachments) {
-                ByteArrayDataSource dataSource = new ByteArrayDataSource(attachment.data(), "application/pdf");
-                helper.addAttachment(attachment.fileName(), dataSource);
+                helper.addAttachment(
+                        attachment.fileName(),
+                        new ByteArrayResource(attachment.data()),
+                        "application/pdf");
             }
 
             mailSender.send(mimeMessage);
-            log.info("Tickets email sent to {} for reservation {} ({} attachments)",
-                    buyerEmail, reservation.getId(), attachments.size());
         } catch (Exception ex) {
-            log.error("Failed to send tickets for reservation {} to {}: {}",
-                    reservation.getId(), buyerEmail, ex.getMessage(), ex);
+            log.error("Failed to send tickets for reservation {}", reservation.getId(), ex);
         }
     }
 
@@ -106,7 +104,7 @@ public class EmailService {
                 Во вложении находятся файлы в формате PDF. Покажите билет на входе или распечатайте заранее.
 
                 С уважением,
-                команда App Ticket
+                команда App Tickit
                 """.formatted(
                 safe(reservation.getBuyerName()),
                 concertTitle,
@@ -139,7 +137,7 @@ public class EmailService {
         try {
             MimeMessage mimeMessage = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, false, StandardCharsets.UTF_8.name());
-            String from = StringUtils.hasText(fromAddress) ? fromAddress : "no-reply@appticket.ru";
+            String from = StringUtils.hasText(fromAddress) ? fromAddress : "no-reply@apptickit.ru";
             helper.setFrom(Objects.requireNonNull(from));
             helper.setTo(Objects.requireNonNull(buyerEmail));
             String subjectTitle = safe(reservation.getConcert().getTitle());
@@ -183,7 +181,7 @@ public class EmailService {
                 Если у вас возникли вопросы, пожалуйста, свяжитесь с нами.
 
                 С уважением,
-                команда App Ticket
+                команда App Tickit
                 """.formatted(
                 safe(reservation.getBuyerName()),
                 concertTitle,
