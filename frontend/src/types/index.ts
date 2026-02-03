@@ -19,7 +19,7 @@ export interface Ticket {
   id: string;
   reservationId: string;
   status: TicketStatus;
-  seat: Seat;
+  seat: Seat | null;  // null если место удалено (например, после возврата)
   buyerName: string;
   buyerPhone: string;
   qrCodeUrl?: string | null;

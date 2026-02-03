@@ -2078,7 +2078,7 @@ const cancelSelectedTickets = async () => {
 };
 
 const formatSeat = (ticket: Ticket) =>
-  `Стол ${ticket.seat.tableNumber}, место ${ticket.seat.chairNumber}`;
+  ticket.seat ? `Стол ${ticket.seat.tableNumber}, место ${ticket.seat.chairNumber}` : '—';
 
 const formatRub = (cents: number) =>
   new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB', maximumFractionDigits: 0 }).format(

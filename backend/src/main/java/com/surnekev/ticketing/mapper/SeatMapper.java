@@ -10,7 +10,10 @@ import java.time.Instant;
 @Component
 public class SeatMapper {
 
-    public SeatDto toDto(Seat seat, @Nullable Instant holdExpiresAt) {
+    public SeatDto toDto(@Nullable Seat seat, @Nullable Instant holdExpiresAt) {
+        if (seat == null) {
+            return null;
+        }
         int resolvedPrice = seat.getPriceOverrideCents() != null
                 ? seat.getPriceOverrideCents()
                 : seat.getCategory().getPriceCents();
