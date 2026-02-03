@@ -1,0 +1,87 @@
+# Конфигурация для локальной разработки (бэкенд запущен локально на хосте)
+# HTTP сервер - без редиректа на HTTPS
+server {
+    listen 80;
+    server_name localhost apptickit.ru www.apptickit.ru;
+    
+    # Увеличиваем таймауты для WebSocket
+    proxy_connect_timeout 7d;
+    proxy_send_timeout 7d;
+    proxy_read_timeout 7d;
+
+    # Проксирование на локальный бэкенд (host.docker.internal - специальный DNS для доступа к хосту из Docker)
+    location /api/ {
+        # Поддержка CORS preflight запросов
+        if ($request_method = 'OPTIONS') {
+            add_header 'Access-Control-Allow-Origin' '*' always;
+            add_header 'Access-Control-Allow-Methods' 'GET, POST, PUT, DELETE, OPTIONS' always;
+            add_header 'Access-Control-Allow-Headers' 'DNT,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range,Authorization' always;
+            add_header 'Access-Control-Max-Age' 1728000 always;
+            add_header 'Content-Type' 'text/plain; charset=utf-8' always;
+            add_header 'Content-Length' 0 always;
+            return 204;
+        }
+        
+        proxy_pass http://backend:8080/api/;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        
+        # Увеличиваем размер буфера для больших запросов
+        proxy_buffer_size 128k;
+        proxy_buffers 4 256k;
+        proxy_busy_buffers_size 256k;
+        
+        # Обработка ошибок подключения
+        proxy_next_upstream error timeout invalid_header http_500 http_502 http_503;
+    }
+
+    location /uploads/ {
+        proxy_pass http://backend:8080/uploads/;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    location /ws-seat-status {
+        proxy_pass http://backend:8080/ws-seat-status;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "Upgrade";
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        
+        # Таймауты для WebSocket
+        proxy_connect_timeout 7d;
+        proxy_send_timeout 7d;
+        proxy_read_timeout 7d;
+    }
+
+    # Проксирование на frontend контейнер
+    location / {
+        proxy_pass http://frontend:4173;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        # Для SPA роутинга - возвращаем index.html для всех не-API маршрутов
+        try_files $uri $uri/ /index.html;
+
+        # Увеличиваем таймауты
+        proxy_connect_timeout 60s;
+        proxy_send_timeout 60s;
+        proxy_read_timeout 60s;
+
+        # Не кешируем ответы от Vite dev server
+        proxy_cache_bypass $http_upgrade;
+        proxy_no_cache $http_upgrade;
+        add_header Cache-Control "no-cache, no-store, must-revalidate";
+        add_header Pragma "no-cache";
+        add_header Expires "0";
+    }
+}

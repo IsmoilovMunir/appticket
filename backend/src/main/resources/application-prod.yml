@@ -1,0 +1,16 @@
+# Production profile
+spring:
+  jpa:
+    hibernate:
+      ddl-auto: validate  # Не изменяем схему в проде, только Flyway
+  datasource:
+    hikari:
+      maximum-pool-size: 20
+      minimum-idle: 5
+
+logging:
+  level:
+    root: INFO
+    com.surnekev.ticketing: INFO
+    org.springframework.security: WARN
+    org.hibernate.SQL: WARN
