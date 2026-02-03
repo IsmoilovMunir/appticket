@@ -26,15 +26,16 @@ spring:
       port: ${REDIS_PORT:6379}
       password: ${REDIS_PASSWORD:}
   mail:
-    host: smtp.timeweb.ru
-    port: 587
+    host: ${MAIL_HOST:smtp.timeweb.ru}
+    port: ${MAIL_PORT:587}
     username: ${MAIL_USERNAME:info@appticket.ru}
     password: ${MAIL_PASSWORD:}
     properties:
       mail.smtp.auth: true
-      mail.smtp.starttls.enable: true
-      mail.smtp.starttls.required: true
-      mail.smtp.ssl.trust: smtp.timeweb.ru
+      mail.smtp.starttls.enable: ${MAIL_STARTTLS:true}
+      mail.smtp.starttls.required: ${MAIL_STARTTLS:true}
+      mail.smtp.ssl.enable: ${MAIL_SSL:false}
+      mail.smtp.ssl.trust: ${MAIL_HOST:smtp.timeweb.ru}
   jackson:
     default-property-inclusion: non_null
   web:

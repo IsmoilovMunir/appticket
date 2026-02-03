@@ -1,5 +1,10 @@
-# Production profile
+# Production profile (почта: порт 465 SSL — часто не блокируется хостингами)
 spring:
+  mail:
+    port: ${MAIL_PORT:465}
+    properties:
+      mail.smtp.starttls.enable: false
+      mail.smtp.ssl.enable: true
   flyway:
     enabled: true
     baseline-on-migrate: true
