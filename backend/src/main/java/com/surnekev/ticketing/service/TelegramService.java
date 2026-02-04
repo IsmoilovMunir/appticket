@@ -200,8 +200,11 @@ public class TelegramService {
     }
 
     private String buildReservationText(String prefix, Reservation reservation) {
+        boolean simpleMode = reservation.getConcert() != null && reservation.getConcert().isSimpleMode();
         String seats = reservation.getSeats().stream()
-                .map(seat -> "Стол " + seat.getTableNumber() + ", место " + seat.getChairNumber())
+                .map(seat -> simpleMode && seat.getCategory() != null
+                        ? seat.getCategory().getName()
+                        : "Стол " + seat.getTableNumber() + ", место " + seat.getChairNumber())
                 .collect(Collectors.joining("\n"));
         
         // Рассчитываем итоговую цену
@@ -216,13 +219,14 @@ public class TelegramService {
                 .sum();
         
         String totalPriceFormatted = formatPrice(totalPriceCents);
+        String placesLabel = simpleMode ? "Билеты:" : "Места:";
         
         return """
                 <b>%s</b>
                 ID: %s
                 Клиент: %s (%s)
 
-                Места:
+                %s
                 %s
 
                 Итоговая цена: <b>%s</b>
@@ -231,6 +235,7 @@ public class TelegramService {
                 reservation.getId(),
                 defaultString(reservation.getBuyerName(), "—"),
                 defaultString(reservation.getBuyerPhone(), "—"),
+                placesLabel,
                 seats,
                 totalPriceFormatted,
                 reservation.getExpiresAt());

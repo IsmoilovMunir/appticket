@@ -136,6 +136,7 @@ public class TicketPdfService {
         var reservation = ticket.getReservation();
         var concert = reservation.getConcert();
         var seat = ticket.getSeat();
+        boolean simpleMode = concert.isSimpleMode();
 
         String concertTitle = escape(concert.getTitle());
         String buyer = escape(defaultValue(reservation.getBuyerName(), "—"));
@@ -145,6 +146,7 @@ public class TicketPdfService {
         String venue = escape(defaultValue(concert.getVenue(), "—"));
         String price = formatPrice(centsToRubles(seat));
         String qrBase64 = Base64.getEncoder().encodeToString(qrPng);
+        String seatCardContent = buildSeatCardContent(seat, simpleMode, price, ticket.getTicketToken());
 
         String fontCss = fontFaceCss();
         return """
@@ -367,22 +369,7 @@ public class TicketPdfService {
                     
                     <!-- Seat Card -->
                     <div class="seat-card">
-                      <div class="seat-item">
-                        <span class="seat-label">Стол</span>
-                        <span class="seat-value">%d</span>
-                      </div>
-                      <div class="seat-item">
-                        <span class="seat-label">Место</span>
-                        <span class="seat-value">%d</span>
-                      </div>
-                      <div class="seat-item">
-                        <span class="seat-label">Стоимость</span>
-                        <span class="seat-value">%s</span>
-                      </div>
-                      <div class="seat-item">
-                        <span class="seat-label">Идентификатор</span>
-                        <span class="seat-value" style="font-size: 10pt; word-break: break-all;">%s</span>
-                      </div>
+                    %s
                     </div>
                     
                     <!-- QR Code Section -->
@@ -408,16 +395,61 @@ public class TicketPdfService {
                 dateTime,
                 venue,
                 ORGANIZER_NAME,
-                seat.getTableNumber(),
-                seat.getChairNumber(),
-                price,
-                ticket.getTicketToken(),
+                seatCardContent,
                 qrBase64,
                 FULL_RULES
         );
     }
 
+    private String buildSeatCardContent(Seat seat, boolean simpleMode, String price, String ticketToken) {
+        String tokenHtml = "<span class=\"seat-value\" style=\"font-size: 10pt; word-break: break-all;\">"
+                + escape(ticketToken) + "</span>";
+        String priceHtml = "<span class=\"seat-value\">" + price + "</span>";
+
+        if (simpleMode && seat != null && seat.getCategory() != null) {
+            String categoryName = escape(seat.getCategory().getName());
+            return """
+                      <div class="seat-item" style="grid-column: 1 / -1;">
+                        <span class="seat-label">Категория</span>
+                        <span class="seat-value">%s</span>
+                      </div>
+                      <div class="seat-item">
+                        <span class="seat-label">Стоимость</span>
+                        %s
+                      </div>
+                      <div class="seat-item">
+                        <span class="seat-label">Идентификатор</span>
+                        %s
+                      </div>
+                    """.formatted(categoryName, priceHtml, tokenHtml);
+        }
+
+        int tableNum = seat != null ? seat.getTableNumber() : 0;
+        int chairNum = seat != null ? seat.getChairNumber() : 0;
+        return """
+                      <div class="seat-item">
+                        <span class="seat-label">Стол</span>
+                        <span class="seat-value">%d</span>
+                      </div>
+                      <div class="seat-item">
+                        <span class="seat-label">Место</span>
+                        <span class="seat-value">%d</span>
+                      </div>
+                      <div class="seat-item">
+                        <span class="seat-label">Стоимость</span>
+                        %s
+                      </div>
+                      <div class="seat-item">
+                        <span class="seat-label">Идентификатор</span>
+                        %s
+                      </div>
+                    """.formatted(tableNum, chairNum, priceHtml, tokenHtml);
+    }
+
     private double centsToRubles(Seat seat) {
+        if (seat == null) {
+            return 0;
+        }
         Integer override = seat.getPriceOverrideCents();
         if (override != null) {
             return override / 100.0;

@@ -84,13 +84,15 @@ public class EmailService {
         String dateTime = reservation.getConcert().getConcertDate() != null
                 ? DATE_TIME_FORMATTER.format(reservation.getConcert().getConcertDate())
                 : "Уточняется";
+        boolean simpleMode = reservation.getConcert() != null && reservation.getConcert().isSimpleMode();
         StringBuilder seats = new StringBuilder();
         if (confirmedTickets != null && !confirmedTickets.isEmpty()) {
-            confirmedTickets.forEach(ticket -> appendSeatLine(seats, ticket.getSeat()));
+            confirmedTickets.forEach(ticket -> appendSeatLine(seats, ticket.getSeat(), simpleMode));
         } else {
-            reservation.getSeats().forEach(seat -> appendSeatLine(seats, seat));
+            reservation.getSeats().forEach(seat -> appendSeatLine(seats, seat, simpleMode));
         }
 
+        String placesLabel = simpleMode ? "Забронированные билеты:" : "Забронированные места:";
         return """
                 Здравствуйте, %s!
 
@@ -98,7 +100,7 @@ public class EmailService {
                 Дата и время: %s
                 Место проведения: %s
 
-                Забронированные места:
+                %s
                 %s
 
                 Во вложении находятся файлы в формате PDF. Покажите билет на входе или распечатайте заранее.
@@ -110,18 +112,25 @@ public class EmailService {
                 concertTitle,
                 dateTime,
                 safe(reservation.getConcert().getVenue()),
+                placesLabel,
                 seats.toString().isBlank() ? "—" + System.lineSeparator() : seats);
     }
 
-    private void appendSeatLine(StringBuilder builder, Seat seat) {
+    private void appendSeatLine(StringBuilder builder, Seat seat, boolean simpleMode) {
         if (seat == null) {
             return;
         }
-        builder.append("- Стол ")
-                .append(seat.getTableNumber())
-                .append(", место ")
-                .append(seat.getChairNumber())
-                .append(System.lineSeparator());
+        if (simpleMode && seat.getCategory() != null) {
+            builder.append("- ")
+                    .append(seat.getCategory().getName())
+                    .append(System.lineSeparator());
+        } else {
+            builder.append("- Стол ")
+                    .append(seat.getTableNumber())
+                    .append(", место ")
+                    .append(seat.getChairNumber())
+                    .append(System.lineSeparator());
+        }
     }
 
     public void sendRefundNotification(Reservation reservation, List<Ticket> refundedTickets, String reason) {
@@ -157,12 +166,14 @@ public class EmailService {
         String dateTime = reservation.getConcert().getConcertDate() != null
                 ? DATE_TIME_FORMATTER.format(reservation.getConcert().getConcertDate())
                 : "Уточняется";
+        boolean simpleMode = reservation.getConcert() != null && reservation.getConcert().isSimpleMode();
         StringBuilder seats = new StringBuilder();
         if (refundedTickets != null && !refundedTickets.isEmpty()) {
-            refundedTickets.forEach(ticket -> appendSeatLine(seats, ticket.getSeat()));
+            refundedTickets.forEach(ticket -> appendSeatLine(seats, ticket.getSeat(), simpleMode));
         }
 
         String reasonText = StringUtils.hasText(reason) ? reason : "Возврат по запросу";
+        String refundLabel = simpleMode ? "Возвращённые билеты:" : "Возвращённые места:";
 
         return """
                 Здравствуйте, %s!
@@ -171,7 +182,7 @@ public class EmailService {
                 Дата и время концерта: %s
                 Место проведения: %s
 
-                Возвращенные билеты:
+                %s
                 %s
 
                 Причина возврата: %s
@@ -187,6 +198,7 @@ public class EmailService {
                 concertTitle,
                 dateTime,
                 safe(reservation.getConcert().getVenue()),
+                refundLabel,
                 seats.toString().isBlank() ? "—" + System.lineSeparator() : seats,
                 reasonText);
     }
